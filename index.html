@@ -1171,7 +1171,7 @@ function invPaper(p) {
   var ct = (b.phone ? '<div>' + icoSvg('phone') + '<span>' + e(b.phone) + '</span></div>' : '') + (b.email ? '<div>' + icoSvg('mail') + '<span>' + e(b.email) + '</span></div>' : '') + (b.ids ? '<div><span>' + e(b.ids) + '</span></div>' : '');
   var head = '<div class="lh-band"><div class="lh-id">' + (s.logo ? '<img class="lh-logo" src="' + s.logo + '" alt="">' : '') + '<div><div class="lh-firm">' + e(b.firm) + '</div>' + (b.tag ? '<div class="lh-sub">' + e(b.tag) + '</div>' : '') + (b.line2 ? '<div class="lh-sub">' + e(b.line2) + '</div>' : '') + '</div></div>' + (ct ? '<div class="lh-ct">' + ct + '</div>' : '') + '</div>';
   var tab = '<table class="lh-tab"><thead><tr><th>Particulars</th><th>Amount (₹)</th></tr></thead><tbody>' + b.rows.map(function (r) { return '<tr' + (r[2] ? ' class="t"' : '') + '><td>' + e(r[0]) + '</td><td class="r">' + money2(r[1]) + '</td></tr>'; }).join('') + '</tbody></table>';
-  var qr = b.qr ? '<div class="lh-qr">' + qrSvg(upiLink(p), 104) + '<div>Scan to pay ' + inr(b.pi.bal) + '</div></div>' : '';
+  var qr = b.qr ? '<div class="lh-qr">' + qrSvg(upiLink(p), 104) + '<div>Scan to pay ' + inr(b.pi.bal) + '<br>with any UPI app</div></div>' : '';
   var stamp = b.paid ? '<div class="pstamp">PAID' + (b.paidOn ? '<small>' + e(b.paidOn) + '</small>' : '') + '</div>' : '';
   return '<div class="inv">' + head + '<div class="lh-body">' + (s.logo && s.wm ? '<img class="lh-wm" src="' + s.logo + '" alt="">' : '') +
     (b.title ? '<div class="lh-title">' + b.title + '</div>' : '') + '<div class="lh-no"><b>Invoice No.:</b> ' + e(p.no || '-') + '</div>' +
@@ -1183,12 +1183,22 @@ function invPaper(p) {
     '<hr><div class="lh-sign"><b>Authorized Signatory</b>' + lines(b.sign) + '</div></div>' +
     '<div class="lh-foot">' + (b.foot ? PINSVG + '<span>' + e(b.foot) + '</span>' : '') + '</div></div>';
 }
+/* what still makes the invoice complete: the logo (band + watermark) and the UPI ID (scan-to-pay QR code) */
+function setupNote(pi) {
+  if (lsGet('od_hidesetup')) return '';
+  var lg = !S.set.logo, up = !S.set.upi && pi.bal > 0;
+  if (!lg && !up) return '';
+  var t = lg && up ? 'Two things finish your invoice: your logo (in the top band and as a faint watermark, like your own bill) and your UPI ID (a scan-to-pay QR code with the exact amount due).'
+    : lg ? 'Add your logo once. It prints in the top band and as a faint watermark in the middle of every invoice, like your own bill.'
+    : 'Add your UPI ID once to print a scan-to-pay QR code with the exact amount due on every unpaid invoice.';
+  return '<div class="note">' + t + '<div class="acts">' + (lg ? '<button class="btn pri" data-a="logoAdd">Add logo</button>' : '') + (up ? '<button class="btn' + (lg ? '' : ' pri') + '" data-a="upiAdd">Add UPI QR code</button>' : '') + '<button class="btn sm" data-a="setupHide">Not now</button></div></div>';
+}
 function invDetail() {
   var p = find('pay', V.d.id); if (!p) { V.d = null; return '<div class="empty">This invoice was deleted.</div>'; }
   var pi = pinfo(p), c = client(p.cid), w = c && wa(c.phone);
   var h = '<div class="dhead"><h2>Invoice ' + esc(p.no || '') + '</h2><div class="meta">' + esc(cn(p)) + ' · ' + payTag(pi) + '</div></div>' +
     (!S.set.name ? '<div class="note">Your firm name and address are missing on this invoice.<div class="acts"><button class="btn pri" data-a="settings">Add firm details</button></div></div>' :
-      !S.set.logo ? '<div class="note">Add your logo once. It prints in the top band and as a faint watermark in the middle of every invoice, like your own bill.<div class="acts"><button class="btn pri" data-a="logoAdd">Add logo</button></div></div>' : '') +
+      setupNote(pi)) +
     '<div class="acts"><button class="btn pri" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' + (c ? sendBtn(c, 'Send on WhatsApp', '', 'inv', p.id) : '') + (pi.bal > 0 ? '<button class="btn" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="editInv" data-id="' + p.id + '">Edit</button></div>' +
     '<p class="meta">To share the invoice, download the PDF and attach it in WhatsApp or email.</p>' + invPaper(p);
   if (p.rcv.length) h += '<h2>Receipts</h2>' + rcvList(p.rcv, null);
@@ -1430,6 +1440,12 @@ function sheetLogo() {
   sheet('Logo and watermark', '<form data-f="logo" novalidate><p class="meta" style="margin-top:0">Your logo prints in the top band of every invoice and faintly in the middle of the page, like your own bill. Any picture of it works: a PNG, a JPG, or a screenshot cut from your letterhead.</p>' + logoFields(S.set) +
     '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Save logo</button></div></form>');
 }
+function sheetUpi() {
+  var s = S.set;
+  sheet('UPI QR code', '<form data-f="upi" novalidate><p class="meta" style="margin-top:0">Clients scan the code with any UPI app (GPay, PhonePe, Paytm, BHIM) and the exact amount due is filled in for them. It prints next to Bank Details on every unpaid invoice.</p>' +
+    fld('u_upi', 'UPI ID *', inp('u_upi', s.upi, 'maxlength="80" placeholder="yourfirm@okhdfcbank" autocapitalize="none" spellcheck="false" autocomplete="off"'), 'The UPI ID of ' + esc(s.acname || 'your bank account') + '. Your UPI app shows it on your profile page.') +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Save UPI ID</button></div></form>');
+}
 function sheetSettings() {
   var s = S.set; LOGO_EDIT = null;
   sheet('Firm details', '<form data-f="settings" novalidate><h4 style="margin-top:0">Your firm</h4>' + fld('g_name', 'Firm name *', inp('g_name', s.name, 'maxlength="120" autocomplete="organization"'), 'Shown at the top of the app for you and your staff, on invoices and in WhatsApp messages.') +
@@ -1552,6 +1568,12 @@ var FORMS = {
     if (!ids.length) return ferr('Tick at least one.');
     ids.forEach(function (i) { put('comps', Object.assign({}, PRESET[i], { cl: [], since: {}, ct: today() })); });
     closeSheet(); toast(plural(ids.length, 'due date') + ' added. Now select clients in each.');
+  },
+  upi: function () {
+    var upi = val('u_upi');
+    if (!upi) return ferr('Enter the UPI ID, like yourfirm@okhdfcbank.', 'u_upi');
+    if (!/^[A-Za-z0-9._-]{2,256}@[A-Za-z]{2,64}$/.test(upi)) return ferr('UPI ID should look like name@bank, for example yourfirm@okhdfcbank.', 'u_upi');
+    putSet(Object.assign({}, S.set, { upi: upi })); closeSheet(); toast('UPI ID saved. Unpaid invoices now carry a scan-to-pay QR code.');
   },
   logo: function () {
     if (LOGO_BUSY) return ferr('The logo is still being prepared. Try again in a moment.');
@@ -1680,6 +1702,8 @@ var A = {
   csv: function (id) { exportCsv(id); },
   pdf: function (id) { var p = find('pay', id); if (p) makePdf(p); },
   logoAdd: function () { sheetLogo(); },
+  upiAdd: function () { sheetUpi(); },
+  setupHide: function () { lsSet('od_hidesetup', '1'); render(); },
   logoDel: function (id, el) { LOGO_EDIT = ''; var pv = $('#logo_pv'); if (pv) pv.innerHTML = logoPv(''); el.hidden = true; var l = $('label[for="g_logo"]'); if (l) l.textContent = 'Choose logo'; }
 };
 function armed(el, fn) { if (el.dataset.armed) { fn(); return; } el.dataset.armed = '1'; var t = el.textContent; el.textContent = 'Tap again to delete'; setTimeout(function () { if (el.isConnected) { delete el.dataset.armed; el.textContent = t; } }, 3500); }
@@ -1803,7 +1827,7 @@ function loadScript(src) {
 }
 /* the standard PDF fonts speak Windows-1252: curly quotes, dashes, the bullet and the ellipsis are fine, the rupee sign is not */
 function pdfText(s) { return String(s == null ? '' : s).replace(/₹/g, 'Rs.').replace(/[‚′]/g, "'").replace(/[„″]/g, '"').replace(/−/g, '-').replace(/[^\x20-\x7E\xA0-\xFF\n\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026\u20AC]/g, '?'); }
-function upiLink(p) { var s = S.set, bal = pinfo(p).bal; return 'upi://pay?pa=' + encodeURIComponent(s.upi).replace(/%40/g, '@') + '&pn=' + encodeURIComponent((s.name || 'Payee').slice(0, 50)) + '&am=' + bal.toFixed(2) + '&cu=INR&tn=' + encodeURIComponent(('Invoice ' + (p.no || '')).slice(0, 40)); }
+function upiLink(p) { var s = S.set, bal = pinfo(p).bal; return 'upi://pay?pa=' + encodeURIComponent(s.upi).replace(/%40/g, '@') + '&pn=' + encodeURIComponent((s.acname || s.name || 'Payee').slice(0, 50)) + '&am=' + bal.toFixed(2) + '&cu=INR&tn=' + encodeURIComponent(('Invoice ' + (p.no || '')).slice(0, 40)); }
 function qrSvg(text, size) {
   var m; try { m = QR.make(text); } catch (e) { return ''; }
   var n = m.length, q = 2, d = '';
@@ -1954,7 +1978,7 @@ function buildPdf(p) {
       if (b.bank.length || b.qr || b.paid) {
         var side = b.qr || b.paid ? 112 : 0, bl = [];
         b.bank.forEach(function (x) { bl = bl.concat(wrap(x[0] + ' ' + x[1], XR - M - side, SZ, F)); });
-        need(Math.max(GH + bl.length * LH, b.qr ? 120 : b.paid ? 70 : 0) + GT);
+        need(Math.max(GH + bl.length * LH, b.qr ? 132 : b.paid ? 70 : 0) + GT);
         var bt = y;
         if (b.bank.length) {
           heading('Bank Details:');
@@ -1964,8 +1988,8 @@ function buildPdf(p) {
           var m = QR.make(upiLink(p)), n = m.length, qs = 84, cell = qs / (n + 4), qx = XR - qs - 6, qy = bt - 14 - qs;
           page.drawRectangle({ x: qx, y: qy, width: qs, height: qs, color: white });
           for (var r = 0; r < n; r++) { var run = -1; for (var cc = 0; cc <= n; cc++) { var dk = cc < n && m[r][cc]; if (dk && run < 0) run = cc; if (!dk && run >= 0) { page.drawRectangle({ x: qx + (run + 2) * cell, y: qy + qs - (r + 3) * cell, width: (cc - run) * cell, height: cell, color: ink }); run = -1; } } }
-          center('Scan to pay ₹ ' + money2(pi.bal), qx + qs / 2, qy - 10, 8.5, F, mut);
-          y = Math.min(y, qy - 14);
+          center('Scan to pay ₹ ' + money2(pi.bal), qx + qs / 2, qy - 10, 8.5, F, mut); center('with any UPI app', qx + qs / 2, qy - 20, 8, F, mut);
+          y = Math.min(y, qy - 24);
         } else if (b.paid) { stamp(XR - 74, bt - 44, b.paidOn); y = Math.min(y, bt - 74); }
         y -= GT; rule();
       }
