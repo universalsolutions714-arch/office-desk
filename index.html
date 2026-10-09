@@ -93,7 +93,10 @@ h4{font:600 11px/1.3 var(--sans);color:var(--mut);margin:16px 0 6px;text-transfo
 .msg summary{cursor:pointer;color:var(--ac);font-weight:500;width:max-content}
 .msg p{margin:6px 0 0;padding:8px 10px;background:var(--soft);border-radius:6px;overflow-wrap:anywhere}
 .sent{font-size:13px;color:var(--mut);margin:4px 0 0}
-.msgbox{background:var(--soft);border-radius:6px;padding:10px 12px;user-select:all;-webkit-user-select:all;overflow-wrap:anywhere}
+.msgbox{background:var(--soft);border-radius:6px;padding:10px 12px;user-select:all;-webkit-user-select:all;overflow-wrap:anywhere;margin:8px 0}
+.steps{margin:6px 0 4px;padding-left:22px;font-size:14px;color:var(--mut)}
+.steps li{margin:2px 0}
+#send_note{color:var(--ink);font-weight:500}
 .meta{color:var(--mut);font-size:13px}
 .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;font:500 14px/1.2 var(--sans);text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 12px;min-height:36px;cursor:pointer}
@@ -681,17 +684,54 @@ function compMsg(k, key, c) {
   return 'Namaste ' + c.name + ', ' + pLabel(k, key) + ' ka ' + k.n + (late ? ' abhi pending hai (last date ' + fmt(due, 1) + ' thi). Kripya documents turant bhej dein.' : ' ' + fmt(due, 1) + ' tak file karna hai. Kripya zaroori documents jald bhej dein.') + ' Dhanyavaad.' + sign();
 }
 
-/* Client messages open the client's own WhatsApp group with the message copied, ready to paste.
-   With no group link saved, WhatsApp opens with the message typed and asks which chat to send it to. */
-function cwa(c, msg, label, cls, rec) {
+/* Client messages open a "Send on WhatsApp" sheet. On phones the message (or the invoice PDF) goes through
+   the share menu, where the client's group is picked; with a group link saved, "Copy and open group" opens that
+   exact group with the message copied for pasting. WhatsApp cannot open a group with a message already typed. */
+var CANSHARE = !!(navigator.share) && window.self === window.top && !!(window.matchMedia && matchMedia('(pointer:coarse)').matches), SEND = null;
+function sendBtn(c, label, cls, t, ref) {
   if (!c) return '';
-  var g = c.grp, href = g || 'https://wa.me/?text=' + encodeURIComponent(msg);
-  return '<a class="btn' + (cls ? ' ' + cls : '') + '" target="_blank" rel="noopener" href="' + esc(href) + '" data-a="rem" data-id="' + c.id + '" data-msg="' + esc(msg) + '"' + (g ? ' data-copy="1"' : '') + (rec || '') + '>' + label + (g ? ' in group' : '') + '</a>';
+  return '<button class="btn' + (cls ? ' ' + cls : '') + '" type="button" data-a="send" data-id="' + c.id + '" data-t="' + t + '"' + (ref ? ' data-ref="' + esc(ref) + '"' : '') + '>' + label + '</button>';
 }
-function copyText(text, okMsg) {
-  var no = function () { sheet('Copy this message', '<p class="meta">This screen did not allow copying. Press and hold the message below, copy it, then paste it in the WhatsApp group.</p><p class="msgbox">' + esc(text) + '</p><div class="sacts"><button class="btn pri" type="button" data-a="closeSheet">Done</button></div>'); };
-  try { navigator.clipboard.writeText(text).then(function () { toast(okMsg); }, no); } catch (e) { no(); }
+function sendSheet(c, msg, rec, p) {
+  var g = c.grp, my = SEND = { c: c, msg: msg, rec: rec, p: p, file: null };
+  var steps = CANSHARE ? ['Tap ' + (p ? 'Share invoice PDF' : 'Share in WhatsApp') + ' and pick WhatsApp.', 'Choose the group of ' + c.name + '.', 'Tap Send.']
+    : g ? ['Tap Copy and open group.', 'In the group, press and hold the message box and tap Paste.', 'Tap Send.']
+    : ['Tap Open WhatsApp. The message is already typed.', 'Choose the group of ' + c.name + '.', 'Tap Send.'];
+  sheet('Send on WhatsApp', '<p class="meta">' + (g ? 'For the WhatsApp group of ' + esc(c.name) + '.' : 'No group link is saved for ' + esc(c.name) + ', so WhatsApp will ask which chat to use.') + '</p>' +
+    '<p class="msgbox" id="send_msg">' + esc(msg) + '</p><ol class="steps">' + steps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol><div class="acts">' +
+    (p && CANSHARE ? '<button class="btn pri" type="button" data-a="sendPdf" id="send_pdf" disabled>Preparing PDF…</button>' : '') +
+    (CANSHARE ? '<button class="btn' + (p ? '' : ' pri') + '" type="button" data-a="sendShare">' + (p ? 'Share message only' : 'Share in WhatsApp') + '</button>' : '') +
+    (g ? '<a class="btn' + (CANSHARE ? '' : ' pri') + '" target="_blank" rel="noopener" href="' + esc(g) + '" data-a="sendGroup">Copy and open group</a>'
+       : '<a class="btn' + (CANSHARE ? '' : ' pri') + '" target="_blank" rel="noopener" href="' + esc('https://wa.me/?text=' + encodeURIComponent(msg)) + '" data-a="sendPick">Open WhatsApp</a>') +
+    (p && !CANSHARE ? '<button class="btn" type="button" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' : '') + '</div>' +
+    (p && !CANSHARE ? '<p class="meta">To send the invoice itself, download the PDF and attach it in the group (Attach → Document).</p>' : '') +
+    '<p class="meta" id="send_note" hidden></p>');
+  if (p && CANSHARE) pdfFile(p).then(function (f) { if (SEND !== my) return; my.file = f; var b = $('#send_pdf'); if (b) { b.disabled = false; b.textContent = 'Share invoice PDF'; } },
+    function () { var b = $('#send_pdf'); if (b && SEND === my) b.textContent = 'PDF could not be made'; });
 }
+function sendMsgFor(c, t, ref) {
+  var p = null, msg = '', rec = null, kk;
+  if (t === 'remind' || t === 'inv') { p = find('pay', ref); if (!p) return null; msg = t === 'inv' ? invMsg(p) : payMsg(p); if (t === 'remind') rec = { k: 'pay' }; }
+  else if (t === 'stmt') { msg = statementMsg(c); rec = { k: 'pay' }; }
+  else if (t === 'comp' || t === 'docs') {
+    var keys = ref.split(' ').filter(Boolean), list = [];
+    keys.forEach(function (key) { kk = key.indexOf('_'); var k = comp(key.slice(0, kk)); if (k) list.push({ k: k, key: key.slice(kk + 1), due: pDue(k, key.slice(kk + 1)) }); });
+    if (!list.length) return null;
+    msg = t === 'comp' ? compMsg(list[0].k, list[0].key, c) : docsMsg(c, list); rec = { k: 'doc', keys: keys };
+  }
+  return { msg: msg, rec: rec, p: t === 'inv' ? p : null };
+}
+/* a message handed to WhatsApp counts as a reminder sent today (the app cannot see the final Send in WhatsApp) */
+function sendDone() {
+  var s = SEND; if (!s || !s.rec || s.done) return; s.done = true;
+  var t = today(), c = client(s.c.id); if (!c) return;
+  if (s.rec.k === 'pay' && c.prm !== t) put('clients', Object.assign({}, c, { prm: t }));
+  if (s.rec.k === 'doc') s.rec.keys.forEach(function (key) { var pm = {}; pm[c.id] = t; putMarks(key, pm, undefined, 'r'); });
+}
+function sendNote(t) { var n = $('#send_note'); if (n) { n.textContent = t; n.hidden = false; } }
+function shareFail(e) { if (e && e.name === 'AbortError') return; sendNote('The share menu did not open here. Use ' + (SEND && SEND.c.grp ? 'Copy and open group' : 'Open WhatsApp') + ' instead.'); }
+function pdfName(p) { var c = client(p.cid); return ('Invoice ' + (p.no || '') + ' ' + (c ? c.name : p.cname || '')).replace(/[^A-Za-z0-9 _-]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Invoice'; }
+function pdfFile(p) { return loadScript(PDFLIB).then(function () { return buildPdf(p); }).then(function (bytes) { return new File([bytes], pdfName(p) + '.pdf', { type: 'application/pdf' }); }); }
 
 /* ---------- Today's reminders: who to remind, with the message ready ---------- */
 var LEAD = { M: 5, Q: 10, Y: 21 };
@@ -750,9 +790,9 @@ function deskView() {
   var h = '<h2>Today\'s reminders <span class="meta">' + (items.length ? items.length + ' to send' : 'all sent') + '</span></h2>';
   var all = F.deskAll || items.length <= 6, shown = all ? items : items.slice(0, 5);
   h += shown.map(function (it) {
-    var c = it.c, rec = it.k === 'pay' ? ' data-k="pay"' : it.k === 'doc' ? ' data-k="doc" data-keys="' + esc(it.keys.join(' ')) + '"' : '';
+    var c = it.c;
     var btn = it.k === 'work' ? '<a class="btn pri" target="_blank" rel="noopener" href="' + esc(wa(it.s.phone, it.msg)) + '" data-a="rem" data-k="work" data-id="' + it.s.id + '" data-tasks="' + esc(it.tasks.join(' ')) + '">Send to ' + esc(it.s.name.split(' ')[0]) + '</a>'
-      : cwa(c, it.msg, 'Send', 'pri', rec);
+      : sendBtn(c, 'Send', 'pri', it.k === 'pay' ? 'stmt' : 'docs', it.k === 'doc' ? it.keys.join(' ') : '');
     return '<div class="card' + (it.late ? ' badb' : '') + '"><span class="kind">' + it.kind + '</span><div class="top"><div class="grow"><b>' + esc(it.who) + '</b><div class="meta">' + esc(it.note) + '</div>' +
       '<div class="meta">' + (it.last ? 'Last reminder ' + fmt(it.last) : 'No reminder sent yet') + (c && !c.grp ? ' · no group link saved, WhatsApp will ask which chat' : '') + '</div></div></div>' +
       '<details class="msg"><summary>See message</summary><p>' + esc(it.msg) + '</p></details>' +
@@ -916,7 +956,7 @@ function clientDetail() {
     var tot = sum(open, function (p) { return pinfo(p).bal; }), tds = sum(inv, function (p) { return fyStart(p.date || t) === fyStart(t) ? pinfo(p).tds : 0; });
     h += '<h2>Outstanding invoices <span class="meta">' + (open.length ? inr(tot) + dc('Dr') : 'Nil') + '</span></h2>';
     h += open.length ? open.map(invCard).join('') : '<div class="empty">No unpaid invoices.' + (inv.length ? ' ' + plural(inv.length, 'invoice') + ' fully paid.' : '') + '</div>';
-    h += '<div class="acts"><button class="btn pri" data-a="newInv" data-id="' + c.id + '">+ New invoice</button>' + (open.length ? cwa(c, statementMsg(c), 'Send statement', '', ' data-k="pay"') : '') + (inv.length - open.length ? '<button class="btn" data-a="clientPaid" data-id="' + c.id + '">Paid invoices (' + (inv.length - open.length) + ')</button>' : '') + '</div>';
+    h += '<div class="acts"><button class="btn pri" data-a="newInv" data-id="' + c.id + '">+ New invoice</button>' + (open.length ? sendBtn(c, 'Send statement', '', 'stmt') : '') + (inv.length - open.length ? '<button class="btn" data-a="clientPaid" data-id="' + c.id + '">Paid invoices (' + (inv.length - open.length) + ')</button>' : '') + '</div>';
     if (tds) h += '<p class="meta">TDS deducted by this client in FY ' + fyLabel(fyStart(t)) + ': ' + inr(tds) + ' (match with Form 26AS).</p>';
     var ks = S.comps.filter(function (k) { return k.cl.indexOf(c.id) > -1; });
     if (ks.length) h += '<h2>Compliance</h2>' + ks.map(function (k) { var key = pUpcoming(k, t), st = pState(k, key), filed = !!st.f[c.id]; return '<div class="card top"><div class="grow"><b>' + esc(k.n) + '</b><div class="meta">' + esc(pLabel(k, key)) + ' · last date ' + fmt(st.due, 1) + '</div></div>' + (filed ? '<span class="tag ok">Filed</span>' : '<button class="btn sm" data-a="markOne" data-id="' + k.id + '" data-k="' + key + '" data-c="' + c.id + '">Mark filed</button>') + '</div>'; }).join('');
@@ -957,7 +997,7 @@ function invCard(p) {
   var pi = pinfo(p), c = client(p.cid), w = c && wa(c.phone);
   return '<div class="card led' + (pi.st === 'over' ? ' badb' : '') + '">' + ledDate(p.date) + '<div class="ld-b"><div class="top"><div class="grow"><button class="lnk" data-a="openInv" data-id="' + p.id + '">' + esc(cn(p)) + '</button><div class="meta">' + esc(p.no || 'No number') + (p.due ? ' · due ' + fmt(p.due) : '') + '</div></div>' +
     '<div class="amt"><span class="fig">' + figH(p.amt) + '</span>' + (pi.bal > 0 && pi.bal < p.amt ? '<span class="meta">Balance <span class="fig">' + figH(pi.bal) + '</span>' + dc('Dr') + '</span>' : '') + payTag(pi) + '</div></div>' +
-    '<div class="acts">' + (pi.bal > 0 && c ? cwa(c, payMsg(p), 'Remind', '', ' data-k="pay"') : '') + (pi.bal > 0 ? '<button class="btn pri" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="openInv" data-id="' + p.id + '">' + (pi.bal > 0 ? 'Invoice' : 'View invoice') + '</button></div></div></div>';
+    '<div class="acts">' + (pi.bal > 0 && c ? sendBtn(c, 'Remind', '', 'remind', p.id) : '') + (pi.bal > 0 ? '<button class="btn pri" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="openInv" data-id="' + p.id + '">' + (pi.bal > 0 ? 'Invoice' : 'View invoice') + '</button></div></div></div>';
 }
 function payView() {
   var t = today(), fy = fyStart(t), mk = monthKey(t), q = QS.pay.toLowerCase();
@@ -1008,7 +1048,7 @@ function invDetail() {
   var pi = pinfo(p), c = client(p.cid), w = c && wa(c.phone);
   var h = '<div class="dhead"><h2>Invoice ' + esc(p.no || '') + '</h2><div class="meta">' + esc(cn(p)) + ' · ' + payTag(pi) + '</div></div>' +
     (!S.set.name ? '<div class="note">Your firm name and address are missing on this invoice.<div class="acts"><button class="btn pri" data-a="settings">Add firm details</button></div></div>' : '') +
-    '<div class="acts"><button class="btn pri" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' + (c ? cwa(c, invMsg(p), 'Send on WhatsApp') : '') + (pi.bal > 0 ? '<button class="btn" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="editInv" data-id="' + p.id + '">Edit</button></div>' +
+    '<div class="acts"><button class="btn pri" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' + (c ? sendBtn(c, 'Send on WhatsApp', '', 'inv', p.id) : '') + (pi.bal > 0 ? '<button class="btn" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="editInv" data-id="' + p.id + '">Edit</button></div>' +
     '<p class="meta">To share the invoice, download the PDF and attach it in WhatsApp or email.</p>' + invPaper(p);
   if (p.rcv.length) h += '<h2>Receipts</h2>' + rcvList(p.rcv, null);
   return h;
@@ -1078,7 +1118,7 @@ function compDetail() {
     '<div class="card"><div class="top"><div class="grow"><div class="meta">Last date</div><div class="big">' + fmt(st.due, 1) + '</div>' + (st.due !== std ? '<div class="meta">Extended (standard date ' + fmt(std, 1) + ')</div>' : '') + '</div><div class="amt">' + dueText(st.due, st.pending.length) + '</div></div>' +
     '<div class="meta" style="margin-top:6px">' + st.filed.length + ' of ' + st.req.length + ' filed</div><div class="bar"><i style="width:' + pct + '%"></i></div>' +
     '<div class="acts"><button class="btn" data-a="pdue">Change last date</button>' + (st.pending.length > 1 ? '<button class="btn" data-a="pall">Mark all filed</button>' : '') + '<button class="btn" data-a="editComp" data-id="' + k.id + '">Edit clients and dates</button></div></div>';
-  h += '<h2>Pending <span class="meta">' + st.pending.length + '</span></h2>' + (st.pending.length ? '<div class="card">' + st.pending.map(function (c) { return '<div class="row"><div class="grow"><b>' + esc(c.name) + '</b>' + (c.gstin ? '<div class="meta">' + esc(c.gstin) + '</div>' : '') + '</div><div class="acts" style="margin:0">' + cwa(c, compMsg(k, key, c), 'Remind', 'sm', ' data-k="doc" data-keys="' + esc(k.id + '_' + key) + '"') + '<button class="btn pri sm" data-a="mark" data-id="' + c.id + '">Mark filed</button></div></div>'; }).join('') + '</div>' : '<div class="empty">' + (st.req.length ? 'Everyone is filed for this period.' : k.cl.some(function (c) { return client(c); }) ? 'The selected clients were added after this period, so nothing is due here.' : 'No clients selected for this compliance.') + '</div>');
+  h += '<h2>Pending <span class="meta">' + st.pending.length + '</span></h2>' + (st.pending.length ? '<div class="card">' + st.pending.map(function (c) { return '<div class="row"><div class="grow"><b>' + esc(c.name) + '</b>' + (c.gstin ? '<div class="meta">' + esc(c.gstin) + '</div>' : '') + '</div><div class="acts" style="margin:0">' + sendBtn(c, 'Remind', 'sm', 'comp', k.id + '_' + key) + '<button class="btn pri sm" data-a="mark" data-id="' + c.id + '">Mark filed</button></div></div>'; }).join('') + '</div>' : '<div class="empty">' + (st.req.length ? 'Everyone is filed for this period.' : k.cl.some(function (c) { return client(c); }) ? 'The selected clients were added after this period, so nothing is due here.' : 'No clients selected for this compliance.') + '</div>');
   if (st.filed.length) h += '<h2>Filed <span class="meta">' + st.filed.length + '</span></h2><div class="card">' + st.filed.map(function (c) { return '<div class="row"><div class="grow"><b>' + esc(c.name) + '</b><div class="meta">Filed on ' + fmt(st.f[c.id], 1) + '</div></div><button class="btn sm" data-a="unmark" data-id="' + c.id + '">Undo</button></div>'; }).join('') + '</div>';
   return h;
 }
@@ -1412,13 +1452,28 @@ var A = {
   clientPaid: function (id) { var c = client(id); QS.pay = c ? c.name : ''; F.pay = 'paid'; go('pay'); },
   rem: function (id, el) {
     var d = el.dataset, t = today();
-    if (d.copy) copyText(d.msg, 'Message copied. In the group, tap the message box, paste and send.');
-    setTimeout(function () {
-      if (d.k === 'pay') { var c = client(id); if (c && c.prm !== t) put('clients', Object.assign({}, c, { prm: t })); }
-      else if (d.k === 'doc') (d.keys || '').split(' ').filter(Boolean).forEach(function (key) { var p = {}; p[id] = t; putMarks(key, p, undefined, 'r'); });
-      else if (d.k === 'work') (d.tasks || '').split(' ').filter(Boolean).forEach(function (tid) { var x = find('tasks', tid); if (x && x.rmd !== t) put('tasks', Object.assign({}, x, { rmd: t })); });
-    }, 300);
+    setTimeout(function () { if (d.k === 'work') (d.tasks || '').split(' ').filter(Boolean).forEach(function (tid) { var x = find('tasks', tid); if (x && x.rmd !== t) put('tasks', Object.assign({}, x, { rmd: t })); }); }, 300);
   },
+  send: function (id, el) { var c = client(id); if (!c) return; var m = sendMsgFor(c, el.dataset.t, el.dataset.ref || ''); if (m) sendSheet(c, m.msg, m.rec, m.p); },
+  sendShare: function () {
+    var s = SEND; if (!s) return;
+    try { navigator.share({ text: s.msg }).then(function () { sendDone(); closeSheet(); toast(s.rec ? 'Shared. Reminder noted for today.' : 'Shared.'); }, shareFail); } catch (e) { shareFail(e); }
+  },
+  sendPdf: function () {
+    var s = SEND; if (!s || !s.file) return;
+    var data = { files: [s.file], text: s.msg };
+    try {
+      if (navigator.canShare && !navigator.canShare(data)) data = { files: [s.file] };
+      if (navigator.canShare && !navigator.canShare(data)) { sendNote('This phone cannot share PDF files. Download the PDF and attach it in the group.'); return; }
+      navigator.share(data).then(function () { sendDone(); closeSheet(); toast('Invoice shared.'); }, shareFail);
+    } catch (e) { shareFail(e); }
+  },
+  sendGroup: function () {
+    var s = SEND; if (!s) return; sendDone();
+    var ok = function () { sendNote('Message copied. In the group, press and hold the message box, tap Paste, then Send.'); }, no = function () { sendNote('Copying was blocked here. Press and hold the message above to copy it, then paste it in the group.'); };
+    try { navigator.clipboard.writeText(s.msg).then(ok, no); } catch (e) { no(); }
+  },
+  sendPick: function () { sendDone(); sendNote('WhatsApp opened with the message typed. Choose the group, then tap Send.'); },
   copy: function (id) { var done = function () { toast('Number copied'); }; try { navigator.clipboard.writeText(id).then(done, function () { toast('Copy is blocked here. Press and hold the number to copy it.'); }); } catch (e) { toast('Copy is blocked here. Press and hold the number to copy it.'); } },
   tds10: function (id) { var p = find('pay', id); if (!p) return; var pi = pinfo(p), t = r2(p.tx * 0.10); if (t > pi.bal) t = pi.bal; $('#r_tds').value = t; $('#r_amt').value = r2(pi.bal - t); },
   delClient: function (id) {
@@ -1574,8 +1629,7 @@ function qrSvg(text, size) {
 function makePdf(p) {
   toast('Preparing PDF…');
   loadScript(PDFLIB).then(function () { return buildPdf(p); }).then(function (bytes) {
-    var c = client(p.cid), nm = ('Invoice ' + (p.no || '') + ' ' + (c ? c.name : p.cname || '')).replace(/[^A-Za-z0-9 _-]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Invoice';
-    return saveFile(nm + '.pdf', bytes, 'application/pdf');
+    return saveFile(pdfName(p) + '.pdf', bytes, 'application/pdf');
   }).catch(function (e) { toast(e && e.message === 'load' ? 'Could not load the PDF maker. Check your internet and try again.' : 'Could not make the PDF: ' + (e && e.message || 'unknown error')); if (window.console) console.error(e); });
 }
 function buildPdf(p) {
