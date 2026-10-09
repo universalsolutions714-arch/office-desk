@@ -193,7 +193,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 .lh-ct div{display:flex;align-items:center;justify-content:flex-end;gap:8px}
 .lh-ct svg{width:14px;height:14px;fill:#fff;flex:none}
 .lh-body{position:relative;z-index:0;padding:14px 28px 28px}
-.lh-wm{position:absolute;z-index:-1;left:50%;top:50%;width:62%;max-width:330px;max-height:60%;object-fit:contain;transform:translate(-50%,-50%);opacity:.12;pointer-events:none}
+.lh-wm{position:absolute;z-index:-1;left:50%;top:50%;width:62%;max-width:330px;max-height:60%;object-fit:contain;transform:translate(-50%,-50%);opacity:.16;pointer-events:none}
 .lh-title{text-align:center;font-weight:700;letter-spacing:.08em}
 .lh-no{text-align:center}
 .lh-to{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 22px;margin-top:24px}
@@ -1187,7 +1187,8 @@ function invDetail() {
   var p = find('pay', V.d.id); if (!p) { V.d = null; return '<div class="empty">This invoice was deleted.</div>'; }
   var pi = pinfo(p), c = client(p.cid), w = c && wa(c.phone);
   var h = '<div class="dhead"><h2>Invoice ' + esc(p.no || '') + '</h2><div class="meta">' + esc(cn(p)) + ' · ' + payTag(pi) + '</div></div>' +
-    (!S.set.name ? '<div class="note">Your firm name and address are missing on this invoice.<div class="acts"><button class="btn pri" data-a="settings">Add firm details</button></div></div>' : '') +
+    (!S.set.name ? '<div class="note">Your firm name and address are missing on this invoice.<div class="acts"><button class="btn pri" data-a="settings">Add firm details</button></div></div>' :
+      !S.set.logo ? '<div class="note">Add your logo once. It prints in the top band and as a faint watermark in the middle of every invoice, like your own bill.<div class="acts"><button class="btn pri" data-a="logoAdd">Add logo</button></div></div>' : '') +
     '<div class="acts"><button class="btn pri" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' + (c ? sendBtn(c, 'Send on WhatsApp', '', 'inv', p.id) : '') + (pi.bal > 0 ? '<button class="btn" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="editInv" data-id="' + p.id + '">Edit</button></div>' +
     '<p class="meta">To share the invoice, download the PDF and attach it in WhatsApp or email.</p>' + invPaper(p);
   if (p.rcv.length) h += '<h2>Receipts</h2>' + rcvList(p.rcv, null);
@@ -1419,6 +1420,16 @@ function sheetPresets() {
 function numOpts(pre, cur) { var t = today(); return opts([['fy', noBase(t, pre, 'fy') + '001 (year)'], ['mon', noBase(t, pre, 'mon') + '01 (month)']], cur); }
 var LOGO_EDIT = null;
 function logoPv(v) { return v ? '<span class="lp-n"><img src="' + v + '" alt="Logo on the invoice band"></span><span class="lp-w"><img src="' + v + '" alt="Logo on white paper"></span>' : '<span class="meta">No logo yet</span>'; }
+function logoFields(s) {
+  return '<div class="logo-f"><div class="logo-pv" id="logo_pv">' + logoPv(s.logo) + '</div><div class="acts"><label class="btn" for="g_logo">' + (s.logo ? 'Change logo' : 'Choose logo') + '</label><input type="file" id="g_logo" accept="image/png,image/jpeg,image/webp" data-c="logoFile" hidden><button class="btn del sm" type="button" data-a="logoDel" id="logo_del"' + (s.logo ? '' : ' hidden') + '>Remove logo</button></div>' +
+    '<p class="meta">PNG or JPG. A plain background around the logo is removed, so it sits cleanly on the navy band.</p>' +
+    '<label class="ck"><input type="checkbox" id="g_wm"' + (s.wm ? ' checked' : '') + '><span>Also print the logo faintly in the middle of the invoice (watermark)</span></label></div>';
+}
+function sheetLogo() {
+  LOGO_EDIT = null;
+  sheet('Logo and watermark', '<form data-f="logo" novalidate><p class="meta" style="margin-top:0">Your logo prints in the top band of every invoice and faintly in the middle of the page, like your own bill. Any picture of it works: a PNG, a JPG, or a screenshot cut from your letterhead.</p>' + logoFields(S.set) +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Save logo</button></div></form>');
+}
 function sheetSettings() {
   var s = S.set; LOGO_EDIT = null;
   sheet('Firm details', '<form data-f="settings" novalidate><h4 style="margin-top:0">Your firm</h4>' + fld('g_name', 'Firm name *', inp('g_name', s.name, 'maxlength="120" autocomplete="organization"'), 'Shown at the top of the app for you and your staff, on invoices and in WhatsApp messages.') +
@@ -1427,9 +1438,7 @@ function sheetSettings() {
     '<div class="two">' + fld('g_gstin', 'GSTIN', inp('g_gstin', s.gstin, 'maxlength="15" autocapitalize="characters" spellcheck="false" autocomplete="off"')) + fld('g_pan', 'PAN', inp('g_pan', s.pan, 'maxlength="10" autocapitalize="characters" spellcheck="false" autocomplete="off"')) + '</div>' +
     fld('g_state', 'State', '<select id="g_state">' + stateOpts(s.state) + '</select>') +
     '<div class="two">' + fld('g_phone', 'Phone', inp('g_phone', s.phone, 'inputmode="tel" maxlength="30"')) + fld('g_email', 'Email', inp('g_email', s.email, 'type="email" maxlength="120"')) + '</div>' +
-    '<h4>Logo</h4><div class="logo-f"><div class="logo-pv" id="logo_pv">' + logoPv(s.logo) + '</div><div class="acts"><label class="btn" for="g_logo">' + (s.logo ? 'Change logo' : 'Choose logo') + '</label><input type="file" id="g_logo" accept="image/png,image/jpeg,image/webp" data-c="logoFile" hidden><button class="btn del sm" type="button" data-a="logoDel" id="logo_del"' + (s.logo ? '' : ' hidden') + '>Remove logo</button></div>' +
-    '<p class="meta">PNG or JPG. A plain background around the logo is removed, so it sits cleanly on the navy band.</p>' +
-    '<label class="ck"><input type="checkbox" id="g_wm"' + (s.wm ? ' checked' : '') + '><span>Also print the logo faintly in the middle of the invoice</span></label></div>' +
+    '<h4>Logo and watermark</h4>' + logoFields(s) +
     '<h4>Invoices</h4><div class="two">' + fld('g_prefix', 'Invoice no. prefix', inp('g_prefix', s.prefix, 'maxlength="6" autocapitalize="characters" spellcheck="false" data-i="numHint"')) + fld('g_numst', 'Number style', '<select id="g_numst">' + numOpts(s.prefix, s.numst) + '</select>') + '</div>' +
     '<div class="two">' + fld('g_rate', 'Default GST', '<select id="g_rate">' + opts([[18, 'GST 18%'], [5, 'GST 5%'], [0, 'No GST']], s.rate) + '</select>') + fld('g_sac', 'Default SAC', inp('g_sac', s.sac, 'inputmode="numeric" maxlength="8" placeholder="998222"')) + '</div>' +
     '<p class="meta" style="margin-top:-4px">Common SAC codes: 998221 audit, 998222 accounting and bookkeeping, 998231 business tax consulting, 998232 individual tax returns.</p>' +
@@ -1543,6 +1552,12 @@ var FORMS = {
     if (!ids.length) return ferr('Tick at least one.');
     ids.forEach(function (i) { put('comps', Object.assign({}, PRESET[i], { cl: [], since: {}, ct: today() })); });
     closeSheet(); toast(plural(ids.length, 'due date') + ' added. Now select clients in each.');
+  },
+  logo: function () {
+    if (LOGO_BUSY) return ferr('The logo is still being prepared. Try again in a moment.');
+    var wm = $('#g_wm'), logo = LOGO_EDIT !== null ? LOGO_EDIT : S.set.logo;
+    putSet(Object.assign({}, S.set, { logo: logo, wm: wm ? (wm.checked ? 1 : 0) : S.set.wm }));
+    LOGO_EDIT = null; closeSheet(); toast(logo ? (S.set.wm ? 'Logo saved. It prints at the top and as a watermark on every invoice.' : 'Logo saved. It prints at the top of every invoice.') : 'Logo removed');
   },
   settings: function () {
     var g = val('g_gstin').toUpperCase().replace(/\s/g, ''), pan = val('g_pan').toUpperCase(), ifsc = val('g_ifsc').toUpperCase(), upi = val('g_upi'), pre = val('g_prefix').toUpperCase();
@@ -1664,6 +1679,7 @@ var A = {
   doImport: function () { if (PENDING_IMPORT) importInto(PENDING_IMPORT, function () {}); },
   csv: function (id) { exportCsv(id); },
   pdf: function (id) { var p = find('pay', id); if (p) makePdf(p); },
+  logoAdd: function () { sheetLogo(); },
   logoDel: function (id, el) { LOGO_EDIT = ''; var pv = $('#logo_pv'); if (pv) pv.innerHTML = logoPv(''); el.hidden = true; var l = $('label[for="g_logo"]'); if (l) l.textContent = 'Choose logo'; }
 };
 function armed(el, fn) { if (el.dataset.armed) { fn(); return; } el.dataset.armed = '1'; var t = el.textContent; el.textContent = 'Tap again to delete'; setTimeout(function () { if (el.isConnected) { delete el.dataset.armed; el.textContent = t; } }, 3500); }
@@ -1866,7 +1882,7 @@ function buildPdf(p) {
       /* the letterhead on every page: faint logo, navy band with firm details, brass rules, address band */
       function chrome() {
         page = doc.addPage([W, H]);
-        if (logo && s.wm) { var k = Math.min(300 / logo.width, 290 / logo.height), ww = logo.width * k, hh = logo.height * k; page.drawImage(logo, { x: (W - ww) / 2, y: (H - hh) / 2 - 8, width: ww, height: hh, opacity: 0.12 }); }
+        if (logo && s.wm) { var k = Math.min(300 / logo.width, 290 / logo.height), ww = logo.width * k, hh = logo.height * k; page.drawImage(logo, { x: (W - ww) / 2, y: (H - hh) / 2 - 8, width: ww, height: hh, opacity: 0.16 }); }
         page.drawRectangle({ x: BX, y: H - BAND, width: BW, height: BAND, color: navy });
         page.drawRectangle({ x: BX, y: H - BAND - GL, width: BW, height: GL, color: gold });
         var tx = BX + 24;
