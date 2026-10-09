@@ -1,13 +1,13 @@
 {
   "name": "Office Desk",
   "short_name": "Office Desk",
-  "description": "Clients, GST invoices, payments, work and compliance for a tax practice.",
+  "description": "Clients, GST billing, debtors and creditors, work and compliance due dates for a CA / tax practice.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f2f5f1",
-  "theme_color": "#1f6f54",
+  "background_color": "#eceff4",
+  "theme_color": "#15284d",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },

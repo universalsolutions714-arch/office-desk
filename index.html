@@ -3,17 +3,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Office Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Libre+Caslon+Text:wght@700&amp;display=swap">
 <style>
-/* Layout: one 760px column; sticky section tabs; every add/edit form opens in a bottom sheet so lists never jump. */
+/* Layout: a bound account register. A navy cloth band with index tabs on top, ruled ledger leaves below;
+   money entries carry their date in the margin behind a red double rule, and figures sit in a right-hand
+   column set like a bank passbook. One 760px column; every add/edit form opens in a bottom sheet. */
 :root{
-  --bg:#f2f5f1; --card:#ffffff; --ink:#14231f; --mut:#5b6b66; --line:#d5ddd8; --soft:#e7eee9;
-  --ac:#1f6f54; --acink:#ffffff; --warn:#985d0a; --bad:#b3402f; --shade:rgba(8,18,14,.48); --shadow:rgba(8,18,14,.22);
-  --paper:#ffffff; --paperink:#1b1f1d; --paperline:#c9d1cc; --papermut:#5d6662;
-  --serif:Georgia,"Times New Roman",serif; --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+  --bg:#eceff4; --card:#ffffff; --ink:#16213a; --mut:#596479; --line:#d3d9e4; --soft:#e6eaf1; --rule2:#9aa6bb;
+  --ac:#1f3d7a; --acink:#ffffff;
+  --band:#15284d; --bandink:#f3f6fb; --bandmut:#aab7d0; --bandline:#2d4573; --brass:#d4ab52;
+  --rule:#dd8b7e; --stamp:#5b3fa6;
+  --good:#1c7a4f; --warn:#955f08; --bad:#b3321f;
+  --bandok:#93dcb5; --bandwarn:#f2c772; --bandbad:#ffab9a;
+  --shade:rgba(10,17,32,.5); --shadow:rgba(10,17,32,.2);
+  --paper:#ffffff; --paperink:#1b1f27; --paperline:#c9d0dc; --papermut:#5c6472; --paperac:#1f3d7a; --paperstamp:#5b3fa6;
+  --display:"Libre Caslon Text",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+  --fig:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
   color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1815;--card:#17231f;--ink:#e6efeb;--mut:#97a8a2;--line:#2c3c36;--soft:#1f2e29;--ac:#55b891;--acink:#06140e;--warn:#e3a650;--bad:#ef8a76;--shade:rgba(0,0,0,.62);--shadow:rgba(0,0,0,.5);color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0f1815;--card:#17231f;--ink:#e6efeb;--mut:#97a8a2;--line:#2c3c36;--soft:#1f2e29;--ac:#55b891;--acink:#06140e;--warn:#e3a650;--bad:#ef8a76;--shade:rgba(0,0,0,.62);--shadow:rgba(0,0,0,.5);color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1322;--card:#151d2f;--ink:#e3e8f2;--mut:#98a3b8;--line:#2a354d;--soft:#1c263b;--rule2:#56627c;--ac:#92b1f1;--acink:#0a1431;--band:#17233d;--bandink:#eaeef8;--bandmut:#93a0bb;--bandline:#2e3d60;--brass:#dcb560;--rule:#a65a50;--stamp:#b7a0f2;--good:#62c696;--warn:#e4ab55;--bad:#f2917e;--bandok:#86d6aa;--bandwarn:#efc26d;--bandbad:#ffa391;--shade:rgba(0,0,0,.62);--shadow:rgba(0,0,0,.5);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1322;--card:#151d2f;--ink:#e3e8f2;--mut:#98a3b8;--line:#2a354d;--soft:#1c263b;--rule2:#56627c;--ac:#92b1f1;--acink:#0a1431;--band:#17233d;--bandink:#eaeef8;--bandmut:#93a0bb;--bandline:#2e3d60;--brass:#dcb560;--rule:#a65a50;--stamp:#b7a0f2;--good:#62c696;--warn:#e4ab55;--bad:#f2917e;--bandok:#86d6aa;--bandwarn:#efc26d;--bandbad:#ffa391;--shade:rgba(0,0,0,.62);--shadow:rgba(0,0,0,.5);color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 table{font-size:inherit;color:inherit;line-height:inherit}
@@ -21,84 +33,115 @@ html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);-webkit-text-size-adjust:100%}
 body.lock{overflow:hidden}
 .wrap{max-width:760px;margin:0 auto;padding-inline:16px}
-header.wrap{padding-block:18px 8px}
-.hrow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.hbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:none;max-width:60%}
-.hbtns .btn{white-space:nowrap}
-.auth{max-width:440px;margin:12px auto}
-.auth h2{margin-top:0}
-h1{font:600 24px/1.2 var(--serif);margin:0;text-wrap:balance}
-.sub{margin:2px 0 0;color:var(--mut);font-size:13px;overflow-wrap:anywhere}
-#sync{margin:6px 0 0;font-size:13px;color:var(--ac);display:flex;align-items:center;gap:7px}
+
+/* the register's cloth band */
+.band{background:var(--band);color:var(--bandink)}
+.band .wrap{padding-block:12px 11px}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:30px}
+.eyb{margin:0 auto 0 0;font:500 11.5px/1.3 var(--fig);letter-spacing:.04em;color:var(--bandmut);min-width:0;overflow-wrap:anywhere}
+.hbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:none;max-width:70%;margin-left:auto}
+.hbtns .btn{white-space:nowrap;background:transparent;color:var(--bandink);border-color:var(--bandline)}
+.hbtns .btn:hover{border-color:var(--bandmut)}
+.hbtns .btn.pri{background:var(--brass);border-color:var(--brass);color:var(--band)}
+h1{font:700 23px/1.2 var(--display);margin:5px 0 0;color:var(--bandink);text-wrap:balance;overflow-wrap:anywhere}
+.hmeta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:9px;font-size:12.5px;line-height:1.3;color:var(--bandmut)}
+.fy{font:500 11.5px/1 var(--fig);color:var(--brass);border:1px solid currentColor;border-radius:3px;padding:4px 6px 3px;white-space:nowrap}
+#ay{font-family:var(--fig);font-size:11.5px;white-space:nowrap}
+#sync{display:inline-flex;align-items:center;gap:6px;color:var(--bandok);overflow-wrap:anywhere}
 #sync::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
-#sync.warn{color:var(--warn)} #sync.bad{color:var(--bad)}
-nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
-nav .wrap{display:flex;gap:6px;overflow-x:auto;padding-block:10px;scrollbar-width:none}
+#sync.warn{color:var(--bandwarn)} #sync.bad{color:var(--bandbad)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--band);border-bottom:1px solid var(--bandline)}
+nav .wrap{display:flex;gap:2px;overflow-x:auto;padding-inline:7px;scrollbar-width:none}
 nav .wrap::-webkit-scrollbar{display:none}
-nav button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 14px;border-radius:999px;font:inherit;font-size:14px;cursor:pointer}
-nav button[aria-current="page"]{background:var(--ac);color:var(--acink);border-color:var(--ac)}
-main .wrap{padding-block:14px 56px}
-h2{font:600 17px/1.3 var(--serif);margin:22px 0 8px;text-wrap:balance}
-h2 .meta{font:13px var(--sans);font-weight:400}
-h3{font:600 16px/1.3 var(--serif);margin:0}
-h4{font-size:13px;color:var(--mut);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.05em}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+nav button{flex:none;background:none;border:0;border-bottom:3px solid transparent;border-radius:0;color:var(--bandmut);padding:10px 9px 8px;font:500 14px/1.2 var(--sans);cursor:pointer}
+nav button:hover{color:var(--bandink)}
+nav button[aria-current="page"]{color:var(--bandink);border-bottom-color:var(--brass);font-weight:600}
+nav button:focus-visible{outline:2px solid var(--brass);outline-offset:-3px}
+
+/* ledger leaves */
+main .wrap{padding-block:16px 64px}
+h2{font:700 17px/1.3 var(--display);margin:24px 0 9px;text-wrap:balance}
+h2 .meta{font:400 13px/1.3 var(--sans);margin-left:2px}
+h3{font:700 17px/1.3 var(--display);margin:0}
+h4{font:600 11px/1.3 var(--sans);color:var(--mut);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.09em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:8px}
 .card.warnb{border-color:var(--warn)}
-.card.badb{border-color:var(--bad)}
+.card.badb{border-color:var(--bad);border-color:color-mix(in srgb,var(--bad) 62%,var(--line))}
+.led{display:grid;grid-template-columns:46px minmax(0,1fr);padding:0}
+.ld-d{display:flex;flex-direction:column;align-items:center;gap:1px;padding:13px 2px 10px;border-right:3px double var(--rule);font:500 10.5px/1.2 var(--fig);letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+.ld-d b{font:600 17px/1.1 var(--fig);letter-spacing:0;color:var(--ink)}
+.ld-b{padding:12px 14px 12px 12px;min-width:0}
 .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 @media(min-width:620px){.stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.stat{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--ac);border-radius:6px;padding:10px 12px;min-width:0}
-.stat b{display:block;font:600 21px/1.25 var(--serif);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.stat span{color:var(--mut);font-size:13px}
-.stat.bad{border-left-color:var(--bad)} .stat.warn{border-left-color:var(--warn)}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px 11px;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.stat .sl{font:600 10.5px/1.3 var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}
+.stat b{font:600 18px/1.25 var(--fig);letter-spacing:-.01em;padding-bottom:2px;border-bottom:3px double var(--rule2);max-width:100%;overflow-wrap:anywhere}
+.stat .ss{font-size:12.5px;line-height:1.35;color:var(--mut)}
+.stat.bad b{color:var(--bad)}
 .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .grow{flex:1;min-width:0;overflow-wrap:anywhere}
-.amt{text-align:right;font-variant-numeric:tabular-nums;flex:none;max-width:48%}
+.amt{flex:none;max-width:54%;display:flex;flex-direction:column;align-items:flex-end;gap:3px;text-align:right}
+.fig{font-family:var(--fig);font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.amt>.fig{font-size:15px;font-weight:600}
+.ps{opacity:.55}
+.drcr{font:600 10.5px/1 var(--sans);letter-spacing:.04em;color:var(--mut)}
+.nil{font:500 13px/1.4 var(--fig);color:var(--good)}
 .meta{color:var(--mut);font-size:13px}
 .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;font:inherit;font-size:14px;line-height:1.2;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-height:36px;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;font:500 14px/1.2 var(--sans);text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 12px;min-height:36px;cursor:pointer}
+.btn:hover{border-color:var(--rule2)}
 .btn.pri{background:var(--ac);color:var(--acink);border-color:var(--ac)}
+.btn.pri:hover{filter:brightness(1.12)}
 .btn.del{color:var(--bad)}
 .btn.sm{font-size:13px;padding:5px 10px;min-height:30px}
 .btn:disabled{opacity:.55;cursor:default}
 .lnk{all:unset;cursor:pointer;color:inherit;font-weight:600;overflow-wrap:anywhere}
 .lnk:hover{text-decoration:underline}
 .lnk:focus-visible{outline:2px solid var(--ac);outline-offset:2px;border-radius:2px}
-.tag{display:inline-block;font-size:12px;line-height:18px;border:1px solid currentColor;border-radius:4px;padding:0 6px;white-space:nowrap}
-.bad{color:var(--bad)} .warn{color:var(--warn)} .ok{color:var(--ac)}
-.empty{color:var(--mut);border:1px dashed var(--line);border-radius:10px;padding:16px;text-align:center}
-.note{background:var(--card);border:1px solid var(--warn);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.tag{display:inline-block;font:600 11.5px/18px var(--sans);letter-spacing:.02em;border:1px solid currentColor;border-radius:3px;padding:0 6px;white-space:nowrap}
+.stamp{display:inline-block;font:600 12px/1 var(--fig);letter-spacing:.2em;color:var(--stamp);border:3px double currentColor;border-radius:5px;padding:5px 5px 4px 8px;margin:2px 2px 0 0;transform:rotate(-6deg);white-space:nowrap}
+.bad{color:var(--bad)} .warn{color:var(--warn)} .ok{color:var(--good)}
+.empty{color:var(--mut);border:1px dashed var(--rule2);border-radius:6px;padding:16px;text-align:center}
+.note{background:var(--card);border:1px solid var(--warn);border-radius:6px;padding:12px 14px;margin-bottom:10px}
 .note .acts{margin-top:8px}
-.tbar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.tbar{display:flex;gap:8px;align-items:center;margin-bottom:12px}
 .tbar input{flex:1}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
-.chip{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chip{font:500 13px/1.2 var(--sans);border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:4px;padding:6px 12px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--ac);color:var(--acink);border-color:var(--ac)}
-input,select,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-width:0}
+input,select,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-width:0}
+#i_tx,#r_amt,#r_tds,#b_amt{font-family:var(--fig)}
 textarea{resize:vertical}
 select.inline{width:auto;font-size:14px;padding:6px 8px;min-height:36px}
 input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .bar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin-top:6px}
 .bar i{display:block;height:100%;background:var(--ac)}
-.aging{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.aging div{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 9px;font-size:12px;color:var(--mut);white-space:nowrap}
-.aging b{color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums;margin-left:4px}
-.aging b.bad{color:var(--bad)}
+.ageing{margin-top:8px;background:var(--card);border:1px solid var(--line);border-radius:6px;overflow-x:auto}
+.ageing table{width:100%;border-collapse:collapse;min-width:300px}
+.ageing caption{caption-side:top;text-align:left;padding:9px 12px 3px;font:600 10.5px/1.3 var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}
+.ageing th{font:500 12px/1.3 var(--sans);color:var(--mut);text-align:right;padding:4px 8px 5px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ageing td{font:500 13px/1.3 var(--fig);text-align:right;padding:7px 8px 9px;white-space:nowrap}
+.ageing th:first-child,.ageing td:first-child{padding-left:12px}
+.ageing th:last-child,.ageing td:last-child{padding-right:12px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
 .row:first-child{border-top:0}
 .pnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0}
 .pnav b{text-align:center;flex:1}
-.big{font:600 20px var(--serif)}
+.big{font:700 21px/1.25 var(--display)}
 .dhead{margin:4px 0 8px}
-.dhead h2{margin:0 0 2px;font-size:20px}
+.dhead h2{margin:0 0 3px;font-size:21px}
 .kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:14px;margin:0}
 .kv dt{color:var(--mut)} .kv dd{margin:0;overflow-wrap:anywhere}
 .more{display:block;width:100%;margin-top:6px}
+.auth{max-width:440px;margin:12px auto}
+.auth h2{margin-top:0}
+
+/* bottom sheet forms */
 .sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center}
 .sheet[hidden]{display:none}
 .sh-back{position:absolute;inset:0;background:var(--shade)}
-.sh-box{position:relative;background:var(--card);color:var(--ink);width:100%;max-width:560px;max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;border-radius:14px 14px 0 0;box-shadow:0 -8px 30px var(--shadow);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(min-width:640px){.sheet{align-items:center}.sh-box{border-radius:14px;max-height:86vh}}
+.sh-box{position:relative;background:var(--card);color:var(--ink);width:100%;max-width:560px;max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;border-radius:12px 12px 0 0;box-shadow:0 -8px 30px var(--shadow);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(min-width:640px){.sheet{align-items:center}.sh-box{border-radius:12px;max-height:86vh}}
 .sh-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
 .sh-head h3{font-size:18px}
 .sh-body{overflow:auto;padding:12px 16px 20px;-webkit-overflow-scrolling:touch}
@@ -111,21 +154,25 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 .ferr{color:var(--bad);font-size:14px;margin:4px 0 8px;min-height:0}
 .ferr:empty{display:none}
 .sacts{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-top:6px}
-.sum{background:var(--soft);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:14px;font-variant-numeric:tabular-nums}
-.calc{background:var(--soft);border-radius:8px;padding:8px 12px;margin:2px 0 10px;font-size:14px;font-variant-numeric:tabular-nums}
-.calc div{display:flex;justify-content:space-between;gap:8px}
-.calc .t{font-weight:700;border-top:1px solid var(--line);margin-top:4px;padding-top:4px}
-.cklist{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px 10px;margin-bottom:8px}
+.sum{background:var(--soft);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:14px;font-variant-numeric:tabular-nums}
+.calc{background:var(--soft);border-radius:6px;padding:8px 12px;margin:2px 0 10px;font-size:14px}
+.calc div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:1px 0}
+.calc div span:last-child{font-family:var(--fig);font-weight:500;font-variant-numeric:tabular-nums}
+.calc .t{font-weight:700;border-top:1px solid var(--line);margin-top:4px;padding-top:5px}
+.calc .t span:last-child{font-weight:600;border-bottom:3px double var(--rule2)}
+.cklist{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:4px 10px;margin-bottom:8px}
 .ck{display:flex;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
 .ck:first-child{border-top:0}
 .ck input{width:20px;height:20px;flex:none;accent-color:var(--ac)}
-#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:40;max-width:calc(100% - 32px);box-shadow:0 6px 20px var(--shadow)}
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;z-index:40;max-width:calc(100% - 32px);box-shadow:0 6px 20px var(--shadow)}
+
+/* the printed invoice keeps white paper in both themes */
 .qr{background:#fff;padding:6px;border-radius:4px;display:inline-block;line-height:0}
-.inv{background:var(--paper);color:var(--paperink);border:1px solid var(--paperline);border-radius:6px;padding:18px;font-size:13px;line-height:1.45;margin-top:10px}
+.inv{background:var(--paper);color:var(--paperink);border:1px solid var(--paperline);border-radius:4px;padding:18px;font-size:13px;line-height:1.45;margin-top:10px}
 .inv .im{color:var(--papermut)}
 .inv-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.inv-firm{font:600 18px/1.25 var(--serif)}
-.inv-title{font-weight:700;letter-spacing:.06em;font-size:13px}
+.inv-firm{font:700 18px/1.25 var(--display)}
+.inv-title{font-weight:700;letter-spacing:.08em;font-size:13px;color:var(--paperac)}
 .inv hr{border:0;border-top:1px solid var(--paperline);margin:12px 0}
 .inv-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 .inv-tw{overflow-x:auto;margin-top:12px}
@@ -136,17 +183,23 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 .inv-tot{margin-left:auto;max-width:320px;margin-top:8px;font-variant-numeric:tabular-nums}
 .inv-tot div{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
 .inv-tot .t{font-weight:700;border-top:1px solid var(--paperline);padding-top:4px;margin-top:2px}
-.inv-pay{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px}
+.inv-tot .t span:last-child{border-bottom:3px double var(--paperline)}
+.inv-pay{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
 .inv-sign{text-align:right;margin-top:18px}
+.pstamp{display:inline-flex;flex-direction:column;align-items:center;gap:4px;margin:6px 10px 6px auto;color:var(--paperstamp);border:3px double currentColor;border-radius:8px;padding:8px 12px 7px 16px;transform:rotate(-8deg);font:600 22px/1 var(--fig);letter-spacing:.24em}
+.pstamp small{font:600 10.5px/1 var(--fig);letter-spacing:.06em}
 @media (prefers-reduced-motion:no-preference){.sh-box{animation:up .18s ease-out}@keyframes up{from{transform:translateY(28px)}to{transform:none}}}
 </style>
 
-<header class="wrap">
-  <div class="hrow">
-    <div><h1>Office Desk</h1><p class="sub" id="firm">Clients, payments, work and staff in one place</p></div>
-    <div class="hbtns"><button class="btn sm pri" id="instb" data-a="install" hidden>Install app</button><button class="btn sm" id="setb" data-a="settings" hidden>Settings</button><button class="btn sm" id="outb" data-a="signout" hidden>Sign out</button></div>
+<header class="band">
+  <div class="wrap">
+    <div class="hrow" id="hrow">
+      <p class="eyb" id="eyb" hidden></p>
+      <div class="hbtns"><button class="btn sm pri" id="instb" data-a="install" hidden>Install app</button><button class="btn sm" id="setb" data-a="settings" hidden>Settings</button><button class="btn sm" id="outb" data-a="signout" hidden>Sign out</button></div>
+    </div>
+    <h1 id="firm">Office Desk</h1>
+    <div class="hmeta"><span class="fy" id="fy">FY</span><span id="ay"></span><span id="sync" class="warn">Loading…</span></div>
   </div>
-  <p id="sync" class="warn">Loading…</p>
 </header>
 <nav aria-label="Sections"><div class="wrap" id="nav"></div></nav>
 <main id="main"><div class="wrap"><div id="tool"></div><div id="list"></div></div></main>
@@ -161,6 +214,8 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 'use strict';
 /* Firebase settings for the hosted phone app. Left null inside Claude, where Claude's own sync is used. */
 var FBCFG = {"apiKey": "AIzaSyCF7Jyt8IXuAvtrkNVcKv_PQP7QVlc62Yc", "authDomain": "office-desk-c04ec.firebaseapp.com", "projectId": "office-desk-c04ec", "storageBucket": "office-desk-c04ec.firebasestorage.app", "messagingSenderId": "563966534066", "appId": "1:563966534066:web:08437ee33329afcb02c4ab"};
+/* The firm's name: shown before sign-in, on staff phones (they cannot open the office settings) and until Settings has a name. */
+var FIRM = '';
 
 /* ================= helpers ================= */
 var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -171,6 +226,19 @@ function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return n
 function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
 function str(v, max) { return v == null ? '' : String(v).trim().slice(0, max || 500); }
 function val(id) { var e = document.getElementById(id); return e ? String(e.value).trim() : ''; }
+/* the firm's name: from Settings (owner), from the shared copy staff can read, or as last seen on this device */
+var FIRMDOC = '~firm', SHAREDFIRM = '', CACHEDFIRM = str(lsGet('od_firm'), 120);
+function brand() { return S.set.name || SHAREDFIRM || CACHEDFIRM || FIRM || 'Office Desk'; }
+function firmSync() {
+  var nm = S.set.name || SHAREDFIRM;
+  if (nm && nm !== CACHEDFIRM) { CACHEDFIRM = nm; lsSet('od_firm', nm); }
+  /* the owner keeps a copy of the name where staff phones can read it */
+  if (MODE === 'db' && ROLE === 'admin' && LOADED.set && LOADED.staff && S.set.name && S.set.name !== SHAREDFIRM && !firmSync.busy && (firmSync.fails || 0) < 2) {
+    var want = S.set.name; firmSync.busy = true;
+    write(PATH.staff + '/' + FIRMDOC, 'set', { name: want }).then(function (ok) { firmSync.busy = false; if (ok) { SHAREDFIRM = want; firmSync.fails = 0; } else firmSync.fails = (firmSync.fails || 0) + 1; });
+  }
+}
+function slug(s) { return String(s).toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'office'; }
 function plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
 function sum(a, f) { var t = 0; a.forEach(function (x) { t += f(x); }); return r2(t); }
 function byName(a, b) { return String(a.name || a.party || '').localeCompare(String(b.name || b.party || ''), 'en', { sensitivity: 'base' }); }
@@ -199,6 +267,11 @@ function r2(x) { x = Number(x); if (!isFinite(x) || Math.abs(x) < 1e-7) return 0
 function num(v) { if (typeof v === 'number') return v; var s = String(v == null ? '' : v).replace(/[₹,\s]/g, '').replace(/^rs\.?/i, ''); return /^\d*\.?\d+$/.test(s) ? parseFloat(s) : NaN; }
 function inr(n) { n = r2(n); var neg = n < 0; n = Math.abs(n); return (neg ? '-' : '') + '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
 function money2(n) { return r2(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+/* ledger figures: rupees and paise (paise a shade lighter, as in the Rs. | P. columns), with Dr / Cr */
+function figH(n) { var s = money2(n), i = s.lastIndexOf('.'); return '₹' + s.slice(0, i) + '<span class="ps">' + s.slice(i) + '</span>'; }
+function dc(side) { return '&nbsp;<span class="drcr">' + side + '</span>'; }
+function sideAmt(n, side) { return n > 0 ? inr(n) + dc(side) : inr(0); }
+function plainAmt(n) { return inr(n).replace('₹', ''); }
 var ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
 var TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 function w2(n) { return n < 20 ? ONES[n] : TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : ''); }
@@ -436,9 +509,10 @@ function listen(t, tries) {
       /* apply only what changed, so thousands of invoices stay fast */
       var ch = null; try { ch = typeof snap.docChanges === 'function' ? snap.docChanges() : null; } catch (e) { ch = null; }
       var inc = Array.isArray(ch);
-      if (inc) ch.forEach(function (c) { if (!ID_RE.test(c.doc.id)) return; if (c.type === 'removed') delete map[c.doc.id]; else map[c.doc.id] = norm(c.doc); });
+      if (inc) ch.forEach(function (c) { if (t === 'staff' && c.doc.id === FIRMDOC) { SHAREDFIRM = c.type === 'removed' ? '' : str((c.doc.data() || {}).name, 120); return; } if (!ID_RE.test(c.doc.id)) return; if (c.type === 'removed') delete map[c.doc.id]; else map[c.doc.id] = norm(c.doc); });
+      if (t === 'staff') { var fd = snap.docs.filter(function (d) { return d.id === FIRMDOC; })[0]; SHAREDFIRM = fd ? str((fd.data() || {}).name, 120) : ''; }
       var arr = [];
-      for (var i = 0; i < snap.docs.length; i++) { var d = snap.docs[i]; if (!ID_RE.test(d.id)) continue; var r = inc ? map[d.id] : null; if (!r) { r = norm(d); map[d.id] = r; } arr.push(r); }
+      for (var i = 0; i < snap.docs.length; i++) { var d = snap.docs[i]; if (!ID_RE.test(d.id) || (t === 'staff' && d.id === FIRMDOC)) continue; var r = inc ? map[d.id] : null; if (!r) { r = norm(d); map[d.id] = r; } arr.push(r); }
       if (Object.keys(map).length !== arr.length) { map = {}; arr.forEach(function (x) { map[x.id] = x; }); }
       BASE[t] = arr; S[t] = view(t);
     }
@@ -483,7 +557,7 @@ function pinfo(p) {
 function vinfo(x) { var paid = sum(x.pays, function (r) { return r.amt; }), tds = sum(x.pays, function (r) { return r.tds; }), bal = r2(x.amt - paid - tds); if (bal < 0) bal = 0; var t = today(); return { paid: paid, tds: tds, bal: bal, late: bal > 0 && x.due && x.due < t ? daysBetween(x.due, t) : 0 }; }
 function dueMap() { var m = {}; S.pay.forEach(function (p) { var b = pinfo(p).bal; if (b > 0) m[p.cid] = r2((m[p.cid] || 0) + b); }); return m; }
 function payTag(pi) {
-  if (pi.st === 'paid') return '<span class="tag ok">Paid</span>';
+  if (pi.st === 'paid') return '<span class="stamp">PAID</span>';
   if (pi.st === 'over') return '<span class="tag bad">Overdue ' + pi.late + 'd</span>';
   if (pi.st === 'today') return '<span class="tag warn">Due today</span>';
   if (pi.st === 'part') return '<span class="tag warn">Part paid</span>';
@@ -587,7 +661,7 @@ function compMsg(k, key, c) {
 }
 
 /* ================= view state + rendering ================= */
-var TABS = [['home', 'Home'], ['clients', 'Clients'], ['tasks', 'Work'], ['pay', 'Payments'], ['vendor', 'Vendors'], ['comp', 'Compliance'], ['staff', 'Staff']];
+var TABS = [['home', 'Home'], ['clients', 'Clients'], ['tasks', 'Work'], ['pay', 'Billing'], ['vendor', 'Creditors'], ['comp', 'Compliance'], ['staff', 'Staff']];
 var V = { tab: lsGet('od_tab') || 'home', d: null }, QS = { clients: '', tasks: '', pay: '', vendor: '' };
 var F = { pay: 'open', vend: 'open', tstaff: '', tdone: false, more: {} };
 var RQ = 0, DEFER = false, LASTKEY = '';
@@ -613,10 +687,17 @@ function nav() {
   if (cur && (cur.offsetLeft < n.scrollLeft || cur.offsetLeft + cur.offsetWidth > n.scrollLeft + n.clientWidth)) n.scrollLeft = Math.max(0, cur.offsetLeft - 16);
 }
 function head() {
-  $('#firm').textContent = S.set.name || 'Clients, payments, work and staff in one place';
+  var fy = fyStart(today());
+  var nm = brand(), sid = S.set.gstin ? 'GSTIN ' + S.set.gstin : S.set.pan ? 'PAN ' + S.set.pan : '';
+  firmSync(); nm = brand();
+  $('#firm').textContent = nm; if (document.title !== nm) document.title = nm;
+  var am = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (am && am.content !== nm.slice(0, 30)) am.content = nm.slice(0, 30);
+  $('#eyb').textContent = sid; $('#eyb').hidden = !sid;
+  $('#fy').textContent = 'FY ' + fyLabel(fy); $('#ay').textContent = 'AY ' + fyLabel(fy + 1);
   $('#setb').hidden = !(ROLE === 'admin' && (MODE === 'db' || MODE === 'local'));
   $('#outb').hidden = !(FBM && FUSER);
   $('#instb').hidden = !BIP;
+  $('#hrow').hidden = !sid && $('#instb').hidden && $('#setb').hidden && $('#outb').hidden;
   var t, c = '';
   if (MODE === 'boot') { t = 'Loading…'; c = 'warn'; }
   else if (FBM && MODE !== 'db') { t = { login: 'Sign in to continue', checking: 'Checking your access…', setup: 'Signed in as ' + (FUSER ? FUSER.email : ''), waiting: 'Waiting for the owner to give access', fberror: FBERR }[MODE] || ''; c = MODE === 'fberror' ? 'bad' : 'warn'; }
@@ -629,6 +710,10 @@ function head() {
   var s = $('#sync'); s.textContent = t; s.className = c;
 }
 function emptyBox(t, msg) { return '<div class="empty">' + (t && loading(t) ? 'Loading…' : msg) + '</div>'; }
+/* a summary figure: column heading on top, the figure double-ruled like a ledger total, a note below */
+function stat(label, fig, note, cls) { return '<div class="stat' + (cls ? ' ' + cls : '') + '"><span class="sl">' + label + '</span><b>' + fig + '</b>' + (note ? '<span class="ss">' + note + '</span>' : '') + '</div>'; }
+/* the date written in the ledger margin */
+function ledDate(d) { if (!okDate(d)) return '<div class="ld-d"><b>–</b></div>'; var p = d.split('-'); return '<div class="ld-d"><b>' + p[2] + '</b><span>' + MON[+p[1] - 1] + '</span>' + (p[0] !== today().slice(0, 4) ? '<span>' + p[0] + '</span>' : '') + '</div>'; }
 function moreBtn(key, shown, total) { return total > shown ? '<button class="btn more" data-a="more" data-id="' + key + '">Show ' + Math.min(100, total - shown) + ' more of ' + (total - shown) + '</button>' : ''; }
 function lim(key) { return F.more[key] || 100; }
 function tool() {
@@ -660,31 +745,32 @@ function homeView() {
   if (MODE !== 'boot' && !loading('set') && !S.set.name) h += '<div class="note">Add your firm name, address, GSTIN and bank details once. They print on every invoice and sign your WhatsApp messages.<div class="acts"><button class="btn pri" data-a="settings">Add firm details</button></div></div>';
   var open = S.pay.filter(function (p) { return pinfo(p).bal > 0; }), over = open.filter(function (p) { return pinfo(p).st === 'over'; });
   var tasks = S.tasks.filter(function (x) { return x.st !== 'done'; }), late = tasks.filter(function (x) { return x.due && x.due < t; });
-  var vbal = sum(S.vp, function (x) { return vinfo(x).bal; });
+  var vbal = sum(S.vp, function (x) { return vinfo(x).bal; }), vopen = S.vp.filter(function (x) { return vinfo(x).bal > 0; }).length;
+  var due = sum(open, function (p) { return pinfo(p).bal; }), od = sum(over, function (p) { return pinfo(p).bal; });
   h += '<div class="stats four">' +
-    '<div class="stat warn"><b>' + inr(sum(open, function (p) { return pinfo(p).bal; })) + '</b><span>To collect · ' + plural(open.length, 'invoice') + '</span></div>' +
-    '<div class="stat bad"><b>' + inr(sum(over, function (p) { return pinfo(p).bal; })) + '</b><span>Overdue · ' + plural(over.length, 'invoice') + '</span></div>' +
-    '<div class="stat' + (late.length ? ' bad' : '') + '"><b>' + tasks.length + '</b><span>Open work' + (late.length ? ' · ' + late.length + ' late' : '') + '</span></div>' +
-    '<div class="stat"><b>' + inr(vbal) + '</b><span>To pay vendors</span></div></div>';
+    stat('Sundry debtors', sideAmt(due, 'Dr'), open.length ? plural(open.length, 'invoice') + ' to collect' : 'Nothing to collect') +
+    stat('Overdue', sideAmt(od, 'Dr'), over.length ? plural(over.length, 'invoice') + ' past due date' : 'Nothing past due', od > 0 ? 'bad' : '') +
+    stat('Open work', String(tasks.length), late.length ? late.length + ' past last date' : 'None late', late.length ? 'bad' : '') +
+    stat('Sundry creditors', sideAmt(vbal, 'Cr'), vopen ? plural(vopen, 'bill') + ' to pay' : 'No bills to pay') + '</div>';
   var att = '';
   var ce = compEntries().filter(function (e) { return e.st.pending.length && (e.over || daysBetween(t, e.due) <= 7); });
   if (ce.length) att += '<h2>Filings due</h2>' + ce.slice(0, 8).map(compCard).join('');
-  if (over.length) att += '<h2>Overdue payments</h2>' + over.sort(function (a, b) { return pinfo(b).late - pinfo(a).late; }).slice(0, 5).map(invCard).join('') + (over.length > 5 ? '<button class="btn more" data-a="tab" data-id="pay" data-f="over">See all ' + over.length + ' overdue invoices</button>' : '');
+  if (over.length) att += '<h2>Overdue debtors</h2>' + over.sort(function (a, b) { return pinfo(b).late - pinfo(a).late; }).slice(0, 5).map(invCard).join('') + (over.length > 5 ? '<button class="btn more" data-a="tab" data-id="pay" data-f="over">See all ' + over.length + ' overdue invoices</button>' : '');
   var soon = tasks.filter(function (x) { return x.due && daysBetween(t, x.due) <= 3; }).sort(function (a, b) { return a.due < b.due ? -1 : 1; });
   if (soon.length) att += '<h2>Work due in 3 days</h2>' + soon.slice(0, 6).map(function (x) { return taskCard(x, true); }).join('');
   var y = +t.slice(0, 4), m = +t.slice(5, 7), pm = m === 1 ? 12 : m - 1, py = m === 1 ? y - 1 : y, pk = py + '-' + pad(pm), dep = tdsDeposit(py, pm);
   var ptds = sum(S.vp, function (x) { return sum(x.pays, function (r) { return monthKey(r.date) === pk ? r.tds : 0; }); });
-  if (ptds > 0 && t <= dep) att += '<h2>TDS to deposit</h2><div class="card top"><div class="grow"><b>' + inr(ptds) + '</b> TDS you deducted on vendor payments in ' + MON[pm - 1] + ' ' + py + '<div class="meta">Deposit by ' + fmt(dep, 1) + '</div></div><button class="btn" data-a="tab" data-id="vendor">Vendors</button></div>';
+  if (ptds > 0 && t <= dep) att += '<h2>TDS to deposit</h2><div class="card top"><div class="grow"><b class="fig">' + inr(ptds) + '</b> TDS you deducted on payments to creditors in ' + MON[pm - 1] + ' ' + py + '<div class="meta">Deposit by ' + fmt(dep, 1) + ' (challan ITNS 281)</div></div><button class="btn" data-a="tab" data-id="vendor">Creditors</button></div>';
   h += att || (S.clients.length || S.pay.length ? '<h2>Today</h2>' + emptyBox('pay', 'All clear. Nothing overdue and no filings due this week.') : '');
-  if (!S.clients.length && !loading('clients')) h += '<h2>Start here</h2><div class="card"><div class="meta">Add your clients first. Then add invoices, work and compliance for them. If you used the old Office Desk, import its backup file.</div><div class="acts"><button class="btn pri" data-a="newClient">+ Add first client</button><button class="btn" data-a="import">Import old backup</button></div></div>';
+  if (!S.clients.length && !loading('clients')) h += '<h2>Start here</h2><div class="card"><div class="meta">Add your clients first. Then add invoices, work and compliance for them. If you used the old version of this app, import its backup file.</div><div class="acts"><button class="btn pri" data-a="newClient">+ Add first client</button><button class="btn" data-a="import">Import old backup</button></div></div>';
   return h + dataCard() + installCard();
 }
 function homeStaff() {
   var t = today(), mine = FBM && MEMBER && MEMBER.sid && staffOf(MEMBER.sid) ? MEMBER.sid : '';
   var open = S.tasks.filter(function (x) { return x.st !== 'done' && (!mine || x.sid === mine); }), late = open.filter(function (x) { return x.due && x.due < t; });
   var soon = open.slice().sort(function (a, b) { return (a.due || '9') < (b.due || '9') ? -1 : 1; }).slice(0, 10);
-  return (MODE === 'db' ? '<div class="note"><span class="meta">Staff view. Payments, vendors and compliance are visible to the office owner only.</span></div>' : '') +
-    '<div class="stats"><div class="stat' + (late.length ? ' bad' : '') + '"><b>' + open.length + '</b><span>' + (mine ? 'Your open work' : 'Open work') + (late.length ? ' · ' + late.length + ' late' : '') + '</span></div><div class="stat"><b>' + S.clients.length + '</b><span>Clients</span></div></div>' +
+  return (MODE === 'db' ? '<div class="note"><span class="meta">Staff view. Billing, creditors and compliance are visible to the office owner only.</span></div>' : '') +
+    '<div class="stats">' + stat(mine ? 'Your open work' : 'Open work', String(open.length), late.length ? late.length + ' past last date' : 'None late', late.length ? 'bad' : '') + stat('Clients', String(S.clients.length), 'in the office list') + '</div>' +
     '<h2>' + (mine ? 'Your work, due soonest' : 'Work due soonest') + '</h2>' + (soon.length ? soon.map(function (x) { return taskCard(x, true); }).join('') : emptyBox('tasks', 'No open work. Add work in the Work tab.')) + installCard();
 }
 function dataCard() {
@@ -707,7 +793,7 @@ function clientsView() {
   return '<p class="meta">' + plural(L.length, 'client') + (q ? ' found' : '') + '</p>' + (L.length ? L.slice(0, n).map(function (c) {
     var d = dm[c.id] || 0, w = wa(c.phone), tl = telHref(c.phone);
     return '<div class="card"><div class="top"><div class="grow"><button class="lnk" data-a="openClient" data-id="' + c.id + '">' + esc(c.name) + '</button><div class="meta">' + esc(c.phone || 'No phone') + (c.gstin ? ' · ' + esc(c.gstin) : c.pan ? ' · PAN ' + esc(c.pan) : '') + '</div></div>' +
-      (ROLE === 'admin' ? '<div class="amt">' + (d ? '<b class="warn">' + inr(d) + '</b><div class="meta">due</div>' : '<span class="tag ok">Clear</span>') + '</div>' : '') + '</div>' +
+      (ROLE === 'admin' ? '<div class="amt">' + (d ? '<span class="fig">' + figH(d) + dc('Dr') + '</span><span class="meta">outstanding</span>' : '<span class="nil">Nil</span>') + '</div>' : '') + '</div>' +
       '<div class="acts">' + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, 'Namaste ' + c.name + ', ')) + '">WhatsApp</a>' : '') + (tl ? '<a class="btn" href="' + esc(tl) + '">Call</a>' : '') + '<button class="btn" data-a="openClient" data-id="' + c.id + '">Details</button><button class="btn" data-a="editClient" data-id="' + c.id + '">Edit</button></div></div>';
   }).join('') + moreBtn('clients', n, L.length) : emptyBox(null, 'No client matches “' + esc(QS.clients) + '”.'));
 }
@@ -724,7 +810,7 @@ function clientDetail() {
   if (ROLE === 'admin') {
     var inv = S.pay.filter(function (p) { return p.cid === c.id; }), open = inv.filter(function (p) { return pinfo(p).bal > 0; }).sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
     var tot = sum(open, function (p) { return pinfo(p).bal; }), tds = sum(inv, function (p) { return fyStart(p.date || t) === fyStart(t) ? pinfo(p).tds : 0; });
-    h += '<h2>Invoices <span class="meta">' + (open.length ? inr(tot) + ' due' : 'nothing due') + '</span></h2>';
+    h += '<h2>Outstanding invoices <span class="meta">' + (open.length ? inr(tot) + dc('Dr') : 'Nil') + '</span></h2>';
     h += open.length ? open.map(invCard).join('') : '<div class="empty">No unpaid invoices.' + (inv.length ? ' ' + plural(inv.length, 'invoice') + ' fully paid.' : '') + '</div>';
     h += '<div class="acts"><button class="btn pri" data-a="newInv" data-id="' + c.id + '">+ New invoice</button>' + (open.length && w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, statementMsg(c))) + '">Send statement on WhatsApp</a>' : '') + (inv.length - open.length ? '<button class="btn" data-a="clientPaid" data-id="' + c.id + '">Paid invoices (' + (inv.length - open.length) + ')</button>' : '') + '</div>';
     if (tds) h += '<p class="meta">TDS deducted by this client in FY ' + fyLabel(fyStart(t)) + ': ' + inr(tds) + ' (match with Form 26AS).</p>';
@@ -740,10 +826,10 @@ function clientDetail() {
 function taskCard(x, compact) {
   var t = today(), lateBy = x.st !== 'done' && x.due && x.due < t, s = staffOf(x.sid);
   var who = (x.cid || x.cname ? esc(cn(x)) : 'No client') + ' · ' + esc(sname(x.sid));
-  var right = x.st === 'done' ? '<span class="tag ok">Done' + (x.done ? ' ' + fmt(x.done) : '') + '</span>' : '<span class="meta ' + (lateBy ? 'bad' : '') + '">' + (x.due ? fmt(x.due) : 'No date') + (lateBy ? ' · late' : x.due === t ? ' · today' : '') + '</span>';
+  var right = x.st === 'done' ? '<span class="tag ok">Done' + (x.done ? ' ' + fmt(x.done) : '') + '</span>' : lateBy ? '<span class="tag bad">' + daysBetween(x.due, t) + 'd late</span>' : x.due === t ? '<span class="tag warn">Due today</span>' : x.due ? '' : '<span class="meta">No last date</span>';
   var acts = '<div class="acts"><select class="inline" data-c="taskSt" data-id="' + x.id + '" aria-label="Status of ' + esc(x.title) + '"' + (ROLE === 'viewer' ? ' disabled' : '') + '>' + [['todo', 'To do'], ['doing', 'In progress'], ['done', 'Done']].map(function (o) { return '<option value="' + o[0] + '"' + (x.st === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
     (s && x.st !== 'done' && wa(s.phone) ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(s.phone, staffMsg(x))) + '">Remind staff</a>' : '') + (ROLE !== 'viewer' ? '<button class="btn" data-a="editTask" data-id="' + x.id + '">Edit</button>' : '') + '</div>';
-  return '<div class="card' + (lateBy ? ' badb' : '') + '"><div class="top"><div class="grow"><b>' + esc(x.title) + '</b><div class="meta">' + who + '</div>' + (x.note && !compact ? '<div class="meta">' + esc(x.note) + '</div>' : '') + '</div><div class="amt">' + right + '</div></div>' + acts + '</div>';
+  return '<div class="card led' + (lateBy ? ' badb' : '') + '">' + ledDate(x.due) + '<div class="ld-b"><div class="top"><div class="grow"><b>' + esc(x.title) + '</b><div class="meta">' + who + '</div>' + (x.note && !compact ? '<div class="meta">' + esc(x.note) + '</div>' : '') + '</div>' + (right ? '<div class="amt">' + right + '</div>' : '') + '</div>' + acts + '</div></div>';
 }
 function tasksView() {
   var q = QS.tasks.toLowerCase(), t = today();
@@ -762,12 +848,12 @@ function tasksView() {
   return h;
 }
 
-/* ---------- Payments ---------- */
+/* ---------- Billing (invoices and receipts) ---------- */
 function invCard(p) {
   var pi = pinfo(p), c = client(p.cid), w = c && wa(c.phone);
-  return '<div class="card' + (pi.st === 'over' ? ' badb' : '') + '"><div class="top"><div class="grow"><button class="lnk" data-a="openInv" data-id="' + p.id + '">' + esc(cn(p)) + '</button><div class="meta">' + esc(p.no || 'No number') + ' · ' + (p.date ? fmt(p.date) : 'no date') + (p.due ? ' · due ' + fmt(p.due) : '') + '</div></div>' +
-    '<div class="amt"><b>' + inr(p.amt) + '</b>' + (pi.bal > 0 && pi.bal < p.amt ? '<div class="meta">Balance ' + inr(pi.bal) + '</div>' : '') + '<div>' + payTag(pi) + '</div></div></div>' +
-    '<div class="acts">' + (pi.bal > 0 && w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, payMsg(p))) + '">Remind</a>' : '') + (pi.bal > 0 ? '<button class="btn pri" data-a="rcv" data-id="' + p.id + '">Record payment</button>' : '') + '<button class="btn" data-a="openInv" data-id="' + p.id + '">' + (pi.bal > 0 ? 'Invoice' : 'View invoice') + '</button></div></div>';
+  return '<div class="card led' + (pi.st === 'over' ? ' badb' : '') + '">' + ledDate(p.date) + '<div class="ld-b"><div class="top"><div class="grow"><button class="lnk" data-a="openInv" data-id="' + p.id + '">' + esc(cn(p)) + '</button><div class="meta">' + esc(p.no || 'No number') + (p.due ? ' · due ' + fmt(p.due) : '') + '</div></div>' +
+    '<div class="amt"><span class="fig">' + figH(p.amt) + '</span>' + (pi.bal > 0 && pi.bal < p.amt ? '<span class="meta">Balance <span class="fig">' + figH(pi.bal) + '</span>' + dc('Dr') + '</span>' : '') + payTag(pi) + '</div></div>' +
+    '<div class="acts">' + (pi.bal > 0 && w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, payMsg(p))) + '">Remind</a>' : '') + (pi.bal > 0 ? '<button class="btn pri" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="openInv" data-id="' + p.id + '">' + (pi.bal > 0 ? 'Invoice' : 'View invoice') + '</button></div></div></div>';
 }
 function payView() {
   var t = today(), fy = fyStart(t), mk = monthKey(t), q = QS.pay.toLowerCase();
@@ -776,8 +862,13 @@ function payView() {
   var tdsY = sum(S.pay, function (p) { return sum(p.rcv, function (r) { return r.date && fyStart(r.date) === fy ? r.tds : 0; }); });
   var ag = [0, 0, 0, 0, 0];
   open.forEach(function (p) { var pi = pinfo(p), d = pi.late, b = d <= 0 ? 0 : d <= 30 ? 1 : d <= 60 ? 2 : d <= 90 ? 3 : 4; ag[b] = r2(ag[b] + pi.bal); });
-  var h = '<div class="stats four"><div class="stat warn"><b>' + inr(sum(open, function (p) { return pinfo(p).bal; })) + '</b><span>To collect</span></div><div class="stat bad"><b>' + inr(r2(ag[1] + ag[2] + ag[3] + ag[4])) + '</b><span>Overdue</span></div><div class="stat"><b>' + inr(rcvM) + '</b><span>Received in ' + MON[+t.slice(5, 7) - 1] + '</span></div><div class="stat"><b>' + inr(tdsY) + '</b><span>TDS by clients, FY ' + fyShort(fy) + '</span></div></div>';
-  if (open.length) h += '<div class="aging" aria-label="Unpaid amount by days overdue">' + [['Not due yet', 0], ['1–30 days late', 1], ['31–60 days late', 2], ['61–90 days late', 3], ['Over 90 days late', 4]].filter(function (a) { return ag[a[1]] > 0; }).map(function (a) { return '<div>' + a[0] + '<b class="' + (a[1] >= 2 ? 'bad' : '') + '">' + inr(ag[a[1]]) + '</b></div>'; }).join('') + '</div>';
+  var odAmt = r2(ag[1] + ag[2] + ag[3] + ag[4]), odN = open.filter(function (p) { return pinfo(p).late > 0; }).length;
+  var h = '<div class="stats four">' +
+    stat('Debtors', sideAmt(sum(open, function (p) { return pinfo(p).bal; }), 'Dr'), plural(open.length, 'unpaid invoice')) +
+    stat('Overdue', sideAmt(odAmt, 'Dr'), odN ? plural(odN, 'invoice') + ' past due date' : 'Nothing past due', odAmt > 0 ? 'bad' : '') +
+    stat('Receipts in ' + MON[+t.slice(5, 7) - 1], inr(rcvM), 'received this month') +
+    stat('TDS by clients', inr(tdsY), 'FY ' + fyLabel(fy) + ' · as per books') + '</div>';
+  if (open.length) h += '<div class="ageing"><table><caption>Debtors ageing (₹) · days past due date</caption><thead><tr>' + ['Not due', '1–30', '31–60', '61–90', '90+'].map(function (x) { return '<th scope="col">' + x + '</th>'; }).join('') + '</tr></thead><tbody><tr>' + ag.map(function (v, i) { return '<td' + (i >= 2 && v > 0 ? ' class="bad"' : '') + '>' + (v > 0 ? plainAmt(v) : '–') + '</td>'; }).join('') + '</tr></tbody></table></div>';
   h += '<div class="chips" role="group" aria-label="Filter invoices">' + [['open', 'Unpaid'], ['over', 'Overdue'], ['paid', 'Paid'], ['all', 'All']].map(function (f) { return '<button class="chip" data-a="fpay" data-id="' + f[0] + '" aria-pressed="' + (F.pay === f[0]) + '">' + f[1] + '</button>'; }).join('') + '</div>';
   if (!S.pay.length) return h + emptyBox('pay', S.clients.length ? 'No invoices yet. Tap + Invoice to make the first one.' : 'Add a client first, then make an invoice.');
   var L = S.pay.filter(function (p) { var pi = pinfo(p); if (F.pay === 'open' && !(pi.bal > 0)) return false; if (F.pay === 'over' && pi.st !== 'over') return false; if (F.pay === 'paid' && pi.bal > 0) return false; return !q || has(cn(p), q) || has(p.no, q) || has(p.desc, q); });
@@ -796,6 +887,7 @@ function invPaper(p) {
     (pi.rec || pi.tds ? '<div><span>Received</span><span>' + inr(pi.rec) + '</span></div>' + (pi.tds ? '<div><span>TDS deducted</span><span>' + inr(pi.tds) + '</span></div>' : '') + '<div class="t"><span>Balance due</span><span>' + inr(pi.bal) + '</span></div>' : '');
   var bank = [s.bank ? 'Bank: ' + s.bank : '', s.acname ? 'A/c name: ' + s.acname : '', s.acno ? 'A/c no.: ' + s.acno : '', s.ifsc ? 'IFSC: ' + s.ifsc : '', s.upi ? 'UPI: ' + s.upi : ''].filter(Boolean);
   var qr = s.upi && pi.bal > 0 ? qrSvg(upiLink(p), 116) : '';
+  var stampH = pi.bal <= 0 && p.amt > 0 ? '<div class="pstamp">PAID' + (okDate(pi.last) ? '<small>' + esc(fmt(pi.last, 1).toUpperCase()) + '</small>' : '') + '</div>' : '';
   return '<div class="inv"><div class="inv-top"><div><div class="inv-firm">' + esc(s.name || 'Your firm name') + '</div>' + (s.addr ? '<div class="im">' + esc(s.addr).replace(/\n/g, '<br>') + '</div>' : '') +
     '<div class="im">' + [s.gstin ? 'GSTIN ' + esc(s.gstin) : '', s.pan ? 'PAN ' + esc(s.pan) : ''].filter(Boolean).join(' · ') + '</div><div class="im">' + [s.phone ? esc(s.phone) : '', s.email ? esc(s.email) : ''].filter(Boolean).join(' · ') + '</div></div>' +
     '<div class="inv-title">' + (tax > 0 ? 'TAX INVOICE' : 'INVOICE') + '</div></div><hr>' +
@@ -803,7 +895,7 @@ function invPaper(p) {
     '<div><div>Invoice no.: <b>' + esc(p.no || '-') + '</b></div><div>Invoice date: ' + (p.date ? fmt(p.date, 1) : '-') + '</div>' + (p.due ? '<div>Due date: ' + fmt(p.due, 1) + '</div>' : '') + (tax > 0 && pos ? '<div>Place of supply: ' + esc(stateName(pos)) + '</div>' : '') + '</div></div>' +
     '<div class="inv-tw"><table><thead><tr><th>#</th><th>Description</th><th>SAC</th><th class="r">Amount</th></tr></thead><tbody><tr><td>1</td><td>' + esc(p.desc || 'Professional fees') + '</td><td>' + esc(p.sac || '-') + '</td><td class="r">' + inr(p.tx) + '</td></tr></tbody></table></div>' +
     '<div class="inv-tot">' + rows + '</div><p><span class="im">Amount in words:</span> ' + esc(amountWords(p.amt)) + '</p>' +
-    (bank.length || qr ? '<div class="inv-pay"><div>' + (bank.length ? '<div class="im">Payment details</div>' + bank.map(function (b) { return '<div>' + esc(b) + '</div>'; }).join('') : '') + '</div>' + (qr ? '<div style="text-align:center">' + qr + '<div class="im" style="font-size:11px">Scan to pay ' + inr(pi.bal) + '</div></div>' : '') + '</div>' : '') +
+    (bank.length || qr || stampH ? '<div class="inv-pay"><div>' + (bank.length ? '<div class="im">Payment details</div>' + bank.map(function (b) { return '<div>' + esc(b) + '</div>'; }).join('') : '') + '</div>' + (qr ? '<div style="text-align:center">' + qr + '<div class="im" style="font-size:11px">Scan to pay ' + inr(pi.bal) + '</div></div>' : '') + stampH + '</div>' : '') +
     (p.note || s.terms ? '<p class="im">' + esc([p.note, s.terms].filter(Boolean).join(' · ')) + '</p>' : '') +
     '<div class="inv-sign">For ' + esc(s.name || 'your firm') + '<br><br><br><span class="im">Authorised Signatory</span></div></div>';
 }
@@ -812,25 +904,30 @@ function invDetail() {
   var pi = pinfo(p), c = client(p.cid), w = c && wa(c.phone);
   var h = '<div class="dhead"><h2>Invoice ' + esc(p.no || '') + '</h2><div class="meta">' + esc(cn(p)) + ' · ' + payTag(pi) + '</div></div>' +
     (!S.set.name ? '<div class="note">Your firm name and address are missing on this invoice.<div class="acts"><button class="btn pri" data-a="settings">Add firm details</button></div></div>' : '') +
-    '<div class="acts"><button class="btn pri" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, invMsg(p))) + '">Send on WhatsApp</a>' : '') + (pi.bal > 0 ? '<button class="btn" data-a="rcv" data-id="' + p.id + '">Record payment</button>' : '') + '<button class="btn" data-a="editInv" data-id="' + p.id + '">Edit</button></div>' +
+    '<div class="acts"><button class="btn pri" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, invMsg(p))) + '">Send on WhatsApp</a>' : '') + (pi.bal > 0 ? '<button class="btn" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="editInv" data-id="' + p.id + '">Edit</button></div>' +
     '<p class="meta">To share the invoice, download the PDF and attach it in WhatsApp or email.</p>' + invPaper(p);
-  if (p.rcv.length) h += '<h2>Payments received</h2>' + rcvList(p.rcv, null);
+  if (p.rcv.length) h += '<h2>Receipts</h2>' + rcvList(p.rcv, null);
   return h;
 }
 function rcvList(list, act) {
   return '<div class="card">' + list.slice().sort(function (a, b) { return (b.date || '') < (a.date || '') ? -1 : 1; }).map(function (r) {
-    return '<div class="row"><div class="grow"><b>' + inr(r.amt) + '</b>' + (r.tds ? ' + TDS ' + inr(r.tds) : '') + '<div class="meta">' + (r.date ? fmt(r.date, 1) : 'Date not recorded') + (r.mode ? ' · ' + esc(r.mode) : '') + (r.ref ? ' · ' + esc(r.ref) : '') + '</div></div>' + (act && ROLE === 'admin' ? '<button class="btn del sm" data-a="' + act.a + '" data-id="' + act.id + '" data-r="' + r.id + '">Delete</button>' : '') + '</div>';
+    return '<div class="row"><div class="grow"><b class="fig">' + figH(r.amt) + '</b>' + (r.tds ? ' <span class="meta">+ TDS <span class="fig">' + figH(r.tds) + '</span></span>' : '') + '<div class="meta">' + (r.date ? fmt(r.date, 1) : 'Date not recorded') + (r.mode ? ' · ' + esc(r.mode) : '') + (r.ref ? ' · ' + esc(r.ref) : '') + '</div></div>' + (act && ROLE === 'admin' ? '<button class="btn del sm" data-a="' + act.a + '" data-id="' + act.id + '" data-r="' + r.id + '">Delete</button>' : '') + '</div>';
   }).join('') + '</div>';
 }
 
-/* ---------- Vendors ---------- */
+/* ---------- Creditors (bills the office pays) ---------- */
 function vendorView() {
   var t = today(), mk = monthKey(t), q = QS.vendor.toLowerCase(), y = +t.slice(0, 4), m = +t.slice(5, 7);
   var paidM = sum(S.vp, function (x) { return sum(x.pays, function (r) { return monthKey(r.date) === mk ? r.amt : 0; }); });
   var tdsM = sum(S.vp, function (x) { return sum(x.pays, function (r) { return monthKey(r.date) === mk ? r.tds : 0; }); });
-  var h = '<div class="stats four"><div class="stat warn"><b>' + inr(sum(S.vp, function (x) { return vinfo(x).bal; })) + '</b><span>To pay vendors</span></div><div class="stat"><b>' + inr(paidM) + '</b><span>Paid in ' + MON[m - 1] + '</span></div><div class="stat"><b>' + inr(tdsM) + '</b><span>TDS deducted in ' + MON[m - 1] + ' · deposit by ' + fmt(tdsDeposit(y, m)) + '</span></div><div class="stat"><b>' + S.vp.filter(function (x) { return vinfo(x).late; }).length + '</b><span>Bills past due</span></div></div>';
+  var vopen = S.vp.filter(function (x) { return vinfo(x).bal > 0; }).length, vlate = S.vp.filter(function (x) { return vinfo(x).late; }).length;
+  var h = '<div class="stats four">' +
+    stat('Sundry creditors', sideAmt(sum(S.vp, function (x) { return vinfo(x).bal; }), 'Cr'), vopen ? plural(vopen, 'unpaid bill') : 'No bills to pay') +
+    stat('Payments in ' + MON[m - 1], inr(paidM), 'paid this month') +
+    stat('TDS deducted in ' + MON[m - 1], inr(tdsM), 'deposit by ' + fmt(tdsDeposit(y, m))) +
+    stat('Bills past due', String(vlate), vlate ? 'pay these first' : 'None late', vlate ? 'bad' : '') + '</div>';
   h += '<div class="chips" role="group" aria-label="Filter bills">' + [['open', 'Unpaid'], ['all', 'All bills']].map(function (f) { return '<button class="chip" data-a="fvend" data-id="' + f[0] + '" aria-pressed="' + (F.vend === f[0]) + '">' + f[1] + '</button>'; }).join('') + '</div>';
-  if (!S.vp.length) return h + emptyBox('vp', 'No vendor bills yet. Tap + Bill to add rent, salary, software or any bill you have to pay.');
+  if (!S.vp.length) return h + emptyBox('vp', 'No bills yet. Tap + Bill to add rent, salary, software or any bill your office has to pay.');
   var L = S.vp.filter(function (x) { return (F.vend === 'all' || vinfo(x).bal > 0) && (!q || has(x.party, q) || has(x.bill, q) || has(x.rem, q)); });
   if (!L.length) return h + '<div class="empty">' + (q ? 'No bill matches “' + esc(QS.vendor) + '”.' : 'All bills are paid.') + '</div>';
   var groups = {}; L.forEach(function (x) { (groups[x.party] = groups[x.party] || []).push(x); });
@@ -839,12 +936,14 @@ function vendorView() {
   parties.forEach(function (p) {
     if (shown >= n) return;
     var G = groups[p].sort(function (a, b) { var A = vinfo(a).bal > 0, B = vinfo(b).bal > 0; if (A !== B) return A ? -1 : 1; return (b.date || '') < (a.date || '') ? -1 : 1; }), pe = sum(G, function (x) { return vinfo(x).bal; });
-    h += '<h2>' + esc(p) + ' <span class="meta">' + (pe ? inr(pe) + ' to pay' : 'all paid') + '</span></h2>';
+    h += '<h2>' + esc(p) + ' <span class="meta">' + (pe ? inr(pe) + dc('Cr') + ' to pay' : 'all paid') + '</span></h2>';
     G.forEach(function (x) {
-      shown++; var vi = vinfo(x);
-      h += '<div class="card' + (vi.late ? ' badb' : '') + '"><div class="top"><div class="grow"><b>' + inr(x.amt) + '</b>' + (x.bill ? ' · Bill ' + esc(x.bill) : '') + '<div class="meta">Bill date ' + fmt(x.date) + (x.due ? ' · due ' + fmt(x.due) : '') + '</div>' + (x.rem ? '<div class="meta">' + esc(x.rem) + '</div>' : '') + '</div><div class="amt">' +
-        (vi.bal <= 0 ? '<span class="tag ok">Paid</span>' + (x.pays.length ? '<div class="meta">' + fmt(x.pays.reduce(function (mx, r) { return r.date > mx ? r.date : mx; }, '')) + '</div>' : '') : (vi.late ? '<span class="tag bad">' + vi.late + 'd late</span>' : '<span class="tag warn">' + (vi.paid + vi.tds > 0 ? 'Part paid' : 'Not paid') + '</span>') + (vi.bal < x.amt ? '<div class="meta">Balance ' + inr(vi.bal) + '</div>' : '')) +
-        '</div></div><div class="acts">' + (vi.bal > 0 ? '<button class="btn pri" data-a="vpay" data-id="' + x.id + '">Record payment</button>' : '') + (x.pays.length ? '<button class="btn" data-a="vpay" data-id="' + x.id + '">Payments (' + x.pays.length + ')</button>' : '') + '<button class="btn" data-a="editBill" data-id="' + x.id + '">Edit</button></div></div>';
+      shown++; var vi = vinfo(x), short = x.rem && x.rem.length <= 60, lastPay = x.pays.reduce(function (mx, r) { return r.date > mx ? r.date : mx; }, '');
+      var title = short ? x.rem : x.bill ? 'Bill ' + x.bill : 'Bill';
+      var meta = [short && x.bill ? 'Bill ' + esc(x.bill) : '', x.due ? 'pay by ' + fmt(x.due) : ''].filter(Boolean).join(' · ');
+      h += '<div class="card led' + (vi.late ? ' badb' : '') + '">' + ledDate(x.date) + '<div class="ld-b"><div class="top"><div class="grow"><b>' + esc(title) + '</b>' + (meta ? '<div class="meta">' + meta + '</div>' : '') + (x.rem && !short ? '<div class="meta">' + esc(x.rem) + '</div>' : '') + '</div><div class="amt"><span class="fig">' + figH(x.amt) + '</span>' +
+        (vi.bal <= 0 ? '<span class="stamp">PAID</span>' + (okDate(lastPay) ? '<span class="meta">' + fmt(lastPay) + '</span>' : '') : (vi.bal < x.amt ? '<span class="meta">Balance <span class="fig">' + figH(vi.bal) + '</span>' + dc('Cr') + '</span>' : '') + (vi.late ? '<span class="tag bad">' + vi.late + 'd late</span>' : '<span class="tag warn">' + (vi.paid + vi.tds > 0 ? 'Part paid' : 'Not paid') + '</span>')) +
+        '</div></div><div class="acts">' + (vi.bal > 0 ? '<button class="btn pri" data-a="vpay" data-id="' + x.id + '">Record payment</button>' : '') + (x.pays.length ? '<button class="btn" data-a="vpay" data-id="' + x.id + '">Payments (' + x.pays.length + ')</button>' : '') + '<button class="btn" data-a="editBill" data-id="' + x.id + '">Edit</button></div></div></div>';
     });
   });
   return h + moreBtn('vendor', n, L.length);
@@ -853,9 +952,9 @@ function vendorView() {
 /* ---------- Compliance ---------- */
 function compCard(e) {
   var k = e.k, st = e.st, pct = st.req.length ? Math.round(st.filed.length / st.req.length * 100) : 0;
-  return '<div class="card' + (e.over ? ' badb' : '') + '"><div class="top"><div class="grow"><button class="lnk" data-a="openComp" data-id="' + k.id + '" data-k="' + e.key + '">' + esc(k.n) + '</button><div class="meta">' + esc(pLabel(k, e.key)) + ' · last date ' + fmt(e.due, 1) + '</div></div><div class="amt">' + dueText(e.due, st.pending.length) + '</div></div>' +
+  return '<div class="card led' + (e.over ? ' badb' : '') + '">' + ledDate(e.due) + '<div class="ld-b"><div class="top"><div class="grow"><button class="lnk" data-a="openComp" data-id="' + k.id + '" data-k="' + e.key + '">' + esc(k.n) + '</button><div class="meta">' + esc(pLabel(k, e.key)) + ' · last date ' + fmt(e.due, 1) + '</div></div><div class="amt">' + dueText(e.due, st.pending.length) + '</div></div>' +
     '<div class="meta" style="margin-top:6px">' + st.filed.length + ' of ' + st.req.length + ' filed' + (st.pending.length ? ' · ' + st.pending.length + ' pending' : '') + '</div><div class="bar"><i style="width:' + pct + '%"></i></div>' +
-    '<div class="acts"><button class="btn" data-a="openComp" data-id="' + k.id + '" data-k="' + e.key + '">Open</button></div></div>';
+    '<div class="acts"><button class="btn" data-a="openComp" data-id="' + k.id + '" data-k="' + e.key + '">Open</button></div></div></div>';
 }
 function compView() {
   var h = '<p class="meta">Standard due dates are filled in. When the government extends a date, open that period and change its last date.</p>';
@@ -904,7 +1003,7 @@ function closeSheet(fromBack) {
   if (SHEETFOCUS && document.body.contains(SHEETFOCUS)) try { SHEETFOCUS.focus({ preventScroll: true }); } catch (e) {}
   if (fromBack !== true) hBack();
 }
-/* phone and browser Back closes the open form or page instead of leaving Office Desk */
+/* phone and browser Back closes the open form or page instead of leaving the app */
 var HDEPTH = 0, HSKIP = 0, HQ = [], DSTACK = [];
 function hPush() { try { history.pushState({ od: 1 }, ''); HDEPTH++; } catch (e) {} }
 function hFlush() { HSKIP = 0; var q = HQ; HQ = []; q.forEach(function (f) { f(); }); }
@@ -986,17 +1085,17 @@ function payForm(kind, id, info, list) {
     (isInv ? '<div class="acts" style="margin:-2px 0 10px"><button class="btn sm" type="button" data-a="tds10" data-id="' + esc(id) + '">Client cut 10% TDS on fees</button></div>' : '') +
     '<div class="two">' + fld('r_date', 'Date', '<input id="r_date" type="date" value="' + t + '" max="' + t + '">') + fld('r_mode', 'Mode', '<select id="r_mode">' + opts(MODES.map(function (m) { return [m, m]; }), 'UPI') + '</select>') + '</div>' +
     fld('r_ref', 'Reference', inp('r_ref', '', 'maxlength="60" placeholder="UTR or cheque no." autocomplete="off"')) +
-    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Save payment</button></div></form>' : '<p class="ok"><b>Fully paid.</b></p>') +
-    (list.length ? '<h4>Payments recorded</h4>' + rcvList(list, { a: isInv ? 'delRcv' : 'delVpay', id: id }) : '');
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (isInv ? 'Save receipt' : 'Save payment') + '</button></div></form>' : '<p class="ok"><b>Fully paid.</b></p>') +
+    (list.length ? '<h4>' + (isInv ? 'Receipts recorded' : 'Payments recorded') + '</h4>' + rcvList(list, { a: isInv ? 'delRcv' : 'delVpay', id: id }) : '');
 }
 function sheetRcv(id) {
   var p = find('pay', id); if (!p) return; var pi = pinfo(p);
-  sheet('Payment for ' + (p.no || 'invoice'), '<div class="sum">' + esc(cn(p)) + '<br>Total ' + inr(p.amt) + ' · Received ' + inr(pi.rec) + (pi.tds ? ' · TDS ' + inr(pi.tds) : '') + '<br><b>Balance ' + inr(pi.bal) + '</b></div>' + payForm('rcv', id, pi, p.rcv));
+  sheet('Receipt for ' + (p.no || 'invoice'), '<div class="sum">' + esc(cn(p)) + '<br>Total ' + inr(p.amt) + ' · Received ' + inr(pi.rec) + (pi.tds ? ' · TDS ' + inr(pi.tds) : '') + '<br><b>Balance ' + inr(pi.bal) + '</b></div>' + payForm('rcv', id, pi, p.rcv));
 }
 function sheetBill(id) {
   var x = id ? find('vp', id) : null, t = today(), v = x || { party: '', bill: '', date: t, due: '', amt: '', rem: '' };
   var parties = {}; S.vp.forEach(function (y) { parties[y.party] = 1; });
-  sheet(x ? 'Edit bill' : 'New vendor bill', '<form data-f="bill" data-id="' + esc(id || '') + '" novalidate>' + fld('b_party', 'Party / vendor *', inp('b_party', v.party, 'list="b_list" maxlength="120" autocomplete="off"') + '<datalist id="b_list">' + Object.keys(parties).sort().map(function (p) { return '<option value="' + esc(p) + '">'; }).join('') + '</datalist>') +
+  sheet(x ? 'Edit bill' : 'New bill to pay', '<form data-f="bill" data-id="' + esc(id || '') + '" novalidate>' + fld('b_party', 'Party (creditor) *', inp('b_party', v.party, 'list="b_list" maxlength="120" autocomplete="off"') + '<datalist id="b_list">' + Object.keys(parties).sort().map(function (p) { return '<option value="' + esc(p) + '">'; }).join('') + '</datalist>') +
     '<div class="two">' + fld('b_amt', 'Bill amount ₹ *', inp('b_amt', v.amt, 'inputmode="decimal" autocomplete="off"')) + fld('b_bill', 'Bill no.', inp('b_bill', v.bill, 'maxlength="40" autocomplete="off"')) + '</div>' +
     '<div class="two">' + fld('b_date', 'Bill date *', '<input id="b_date" type="date" value="' + esc(v.date) + '">') + fld('b_due', 'Pay by', '<input id="b_due" type="date" value="' + esc(v.due) + '">') + '</div>' +
     fld('b_rem', 'Remarks', inp('b_rem', v.rem, 'maxlength="500" autocomplete="off"')) +
@@ -1034,7 +1133,7 @@ function sheetPresets() {
 }
 function sheetSettings() {
   var s = S.set;
-  sheet('Firm details', '<form data-f="settings" novalidate><h4 style="margin-top:0">Your firm</h4>' + fld('g_name', 'Firm name *', inp('g_name', s.name, 'maxlength="120" autocomplete="organization"')) +
+  sheet('Firm details', '<form data-f="settings" novalidate><h4 style="margin-top:0">Your firm</h4>' + fld('g_name', 'Firm name *', inp('g_name', s.name, 'maxlength="120" autocomplete="organization"'), 'Shown at the top of the app for you and your staff, on invoices and in WhatsApp messages.') +
     fld('g_addr', 'Address', '<textarea id="g_addr" rows="2" maxlength="400">' + esc(s.addr) + '</textarea>') +
     '<div class="two">' + fld('g_gstin', 'GSTIN', inp('g_gstin', s.gstin, 'maxlength="15" autocapitalize="characters" spellcheck="false" autocomplete="off"')) + fld('g_pan', 'PAN', inp('g_pan', s.pan, 'maxlength="10" autocapitalize="characters" spellcheck="false" autocomplete="off"')) + '</div>' +
     fld('g_state', 'State', '<select id="g_state">' + stateOpts(s.state) + '</select>') +
@@ -1049,11 +1148,11 @@ function sheetSettings() {
     '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Save firm details</button></div></form>');
 }
 function sheetImport() {
-  sheet('Import backup', '<p>Choose a backup file downloaded from Office Desk (old or new version). Records are added or updated; nothing is deleted.</p><label class="btn pri" for="imp_file">Choose backup file</label><input type="file" id="imp_file" accept=".json,application/json" data-c="impFile" hidden><div id="imp_info" style="margin-top:12px"></div>');
+  sheet('Import backup', '<p>Choose a backup file downloaded from this app (old or new version). Records are added or updated; nothing is deleted.</p><label class="btn pri" for="imp_file">Choose backup file</label><input type="file" id="imp_file" accept=".json,application/json" data-c="impFile" hidden><div id="imp_info" style="margin-top:12px"></div>');
 }
 function sheetExports() {
   sheet('Excel files', '<p class="meta">Each file opens in Excel or Google Sheets.</p><div class="acts" style="flex-direction:column;align-items:stretch">' +
-    [['clients', 'Clients with amount due'], ['invoices', 'Invoices with GST and balance'], ['receipts', 'Payments received (with TDS)'], ['bills', 'Vendor bills'], ['vpays', 'Vendor payments (with TDS)'], ['work', 'Work list'], ['comp', 'Compliance status (current periods)']].map(function (e) { return '<button class="btn" data-a="csv" data-id="' + e[0] + '">' + e[1] + '</button>'; }).join('') + '</div>');
+    [['clients', 'Clients with amount due'], ['invoices', 'Invoices with GST and balance'], ['receipts', 'Receipts from clients (with TDS)'], ['bills', 'Creditor bills'], ['vpays', 'Payments to creditors (with TDS)'], ['work', 'Work list'], ['comp', 'Compliance status (current periods)']].map(function (e) { return '<button class="btn" data-a="csv" data-id="' + e[0] + '">' + e[1] + '</button>'; }).join('') + '</div>');
 }
 
 /* ================= form handlers ================= */
@@ -1231,8 +1330,8 @@ var A = {
   pdueReset: function () { var k = comp(V.d.id), key = V.d.p || pUpcoming(k, today()); V.d.p = key; putMarks(k.id + '_' + key, {}, ''); closeSheet(); toast('Standard date restored'); },
   kall: function () { $$('.ck').forEach(function (l) { if (!l.hidden) l.querySelector('input').checked = true; }); },
   knone: function () { $$('input[name="kc"]').forEach(function (i) { i.checked = false; }); },
-  backup: function () { saveFile('office-desk-backup-' + today() + '.json', JSON.stringify(backupObj(S), null, 1), 'application/json').then(function (ok) { if (ok) { lsSet('od_lastbackup', today()); render(); } }); },
-  backupLocal: function () { if (LOCALONLY) saveFile('office-desk-this-device-' + today() + '.json', JSON.stringify(backupObj(LOCALONLY), null, 1), 'application/json'); },
+  backup: function () { saveFile(slug(brand()) + '-backup-' + today() + '.json', JSON.stringify(backupObj(S), null, 1), 'application/json').then(function (ok) { if (ok) { lsSet('od_lastbackup', today()); render(); } }); },
+  backupLocal: function () { if (LOCALONLY) saveFile(slug(brand()) + '-this-device-' + today() + '.json', JSON.stringify(backupObj(LOCALONLY), null, 1), 'application/json'); },
   uploadLocal: function () { if (!LOCALONLY) return; var m = LOCALONLY; importInto(m, function (ok) { if (ok) { lsSet(LKEY + '_uploaded', lsGet(LKEY) || ''); try { localStorage.removeItem(LKEY); } catch (e) {} LOCALONLY = null; render(); } }); },
   import: function () { sheetImport(); }, exports: function () { sheetExports(); },
   doImport: function () { if (PENDING_IMPORT) importInto(PENDING_IMPORT, function () {}); },
@@ -1290,11 +1389,11 @@ function saveFile(name, data, mime) {
 var PENDING_IMPORT = null;
 function readImport(file) {
   var box = $('#imp_info'); if (!file || !box) return;
-  if (file.size > 30e6) { box.innerHTML = '<p class="ferr">This file is too large to be an Office Desk backup.</p>'; return; }
+  if (file.size > 30e6) { box.innerHTML = '<p class="ferr">This file is too large to be a backup from this app.</p>'; return; }
   var r = new FileReader();
   r.onload = function () {
-    var o; try { o = JSON.parse(r.result); } catch (e) { box.innerHTML = '<p class="ferr">This file could not be read. Choose a .json backup made by Office Desk.</p>'; return; }
-    if (!o || typeof o !== 'object' || !TYPES.some(function (t) { return Array.isArray(o[t]); })) { box.innerHTML = '<p class="ferr">This file is not an Office Desk backup.</p>'; return; }
+    var o; try { o = JSON.parse(r.result); } catch (e) { box.innerHTML = '<p class="ferr">This file could not be read. Choose a .json backup made by this app.</p>'; return; }
+    if (!o || typeof o !== 'object' || !TYPES.some(function (t) { return Array.isArray(o[t]); })) { box.innerHTML = '<p class="ferr">This file is not a backup from this app.</p>'; return; }
     var m = migrate(o); PENDING_IMPORT = m;
     var parts = [['clients', 'client'], ['staff', 'staff member'], ['tasks', 'work item'], ['pay', 'invoice'], ['vp', 'vendor bill'], ['comps', 'compliance']].map(function (x) { return m[x[0]].length ? plural(m[x[0]].length, x[1]) : ''; }).filter(Boolean);
     box.innerHTML = '<div class="sum">This backup has ' + (parts.length ? esc(parts.join(', ')) : 'no records') + '.' + (m.set.name ? '<br>Firm: ' + esc(m.set.name) : '') + '</div>' + (parts.length ? '<button class="btn pri" data-a="doImport">Import now</button>' : '');
@@ -1337,7 +1436,7 @@ function exportCsv(kind) {
   else if (kind === 'work') rows = [['Work', 'Client', 'Assigned to', 'Last date', 'Status', 'Done on', 'Notes']].concat(S.tasks.map(function (x) { return [x.title, x.cid || x.cname ? cn(x) : '', sname(x.sid), x.due, { todo: 'To do', doing: 'In progress', done: 'Done' }[x.st], x.done, x.note]; }));
   else if (kind === 'comp') { rows = [['Compliance', 'Period', 'Last date', 'Client', 'GSTIN', 'Status', 'Filed on']]; compEntries().forEach(function (e) { e.st.req.forEach(function (c) { rows.push([e.k.n, pLabel(e.k, e.key), e.due, c.name, c.gstin, e.st.f[c.id] ? 'Filed' : 'Pending', e.st.f[c.id] || '']); }); }); }
   if (!rows) return;
-  saveFile('office-desk-' + name + '-' + t + '.csv', csvText(rows), 'text/csv');
+  saveFile(slug(brand()) + '-' + name + '-' + t + '.csv', csvText(rows), 'text/csv');
 }
 
 /* invoice PDF (pdf-lib, loaded only when needed) */
@@ -1365,10 +1464,20 @@ function makePdf(p) {
 function buildPdf(p) {
   var L = window.PDFLib, s = S.set, c = client(p.cid) || { name: p.cname || 'Client', addr: '', gstin: '', pan: '', state: '' }, pi = pinfo(p), tax = r2(p.cgst + p.sgst + p.igst);
   return L.PDFDocument.create().then(function (doc) {
-    doc.setTitle(pdfText('Invoice ' + (p.no || ''))); doc.setAuthor(pdfText(s.name || 'Office Desk')); doc.setCreator('Office Desk');
+    doc.setTitle(pdfText('Invoice ' + (p.no || ''))); doc.setAuthor(pdfText(brand())); doc.setCreator(pdfText(brand()));
     return Promise.all([doc.embedFont(L.StandardFonts.Helvetica), doc.embedFont(L.StandardFonts.HelveticaBold)]).then(function (fs) {
       var F = fs[0], B = fs[1], W = 595.28, H = 841.89, M = 42, page = doc.addPage([W, H]), y = H - M;
-      var ink = L.rgb(0.09, 0.11, 0.1), mut = L.rgb(0.38, 0.41, 0.4), line = L.rgb(0.76, 0.79, 0.77), fill = L.rgb(0.93, 0.95, 0.94), acc = L.rgb(0.12, 0.43, 0.33);
+      var ink = L.rgb(0.09, 0.12, 0.2), mut = L.rgb(0.37, 0.4, 0.46), line = L.rgb(0.78, 0.8, 0.85), fill = L.rgb(0.93, 0.94, 0.96), acc = L.rgb(0.12, 0.24, 0.48), violet = L.rgb(0.36, 0.25, 0.65);
+      /* a rubber "PAID" stamp in violet stamp-pad ink, tilted, centred on (cx, cy) */
+      function stamp(cx, cy, when) {
+        var a = 8 * Math.PI / 180, co = Math.cos(a), si = Math.sin(a), bw = 128, bh = when ? 50 : 38;
+        function at(lx, ly) { return { x: cx + lx * co - ly * si, y: cy + lx * si + ly * co }; }
+        [[0, 1.6], [3.5, 0.8]].forEach(function (r) { var o = at(-bw / 2 + r[0], -bh / 2 + r[0]); page.drawRectangle({ x: o.x, y: o.y, width: bw - 2 * r[0], height: bh - 2 * r[0], borderColor: violet, borderWidth: r[1], rotate: L.degrees(8), borderOpacity: 0.9 }); });
+        var word = 'PAID', sz = 22, gap = 5, tw = -gap; word.split('').forEach(function (ch) { tw += B.widthOfTextAtSize(ch, sz) + gap; });
+        var lx = -tw / 2, base = when ? 2 : -8;
+        word.split('').forEach(function (ch) { var o = at(lx, base); page.drawText(ch, { x: o.x, y: o.y, size: sz, font: B, color: violet, rotate: L.degrees(8), opacity: 0.9 }); lx += B.widthOfTextAtSize(ch, sz) + gap; });
+        if (when) { var d = T(when), dw = B.widthOfTextAtSize(d, 8), o2 = at(-dw / 2, -16); page.drawText(d, { x: o2.x, y: o2.y, size: 8, font: B, color: violet, rotate: L.degrees(8), opacity: 0.9 }); }
+      }
       function T(x) { return pdfText(x); }
       function text(x, X, Y, size, font, col) { page.drawText(T(x), { x: X, y: Y, size: size, font: font || F, color: col || ink }); }
       function right(x, XR, Y, size, font, col) { x = T(x); var w = (font || F).widthOfTextAtSize(x, size); page.drawText(x, { x: XR - w, y: Y, size: size, font: font || F, color: col || ink }); }
@@ -1422,11 +1531,13 @@ function buildPdf(p) {
       y -= 22; text('Amount in words', M, y, 8, B, mut);
       wrap(amountWords(p.amt), W - 2 * M, 9.5).forEach(function (l) { y -= 13; text(l, M, y, 9.5); });
       var bank = [s.bank ? 'Bank: ' + s.bank : '', s.acname ? 'A/c name: ' + s.acname : '', s.acno ? 'A/c no.: ' + s.acno : '', s.ifsc ? 'IFSC: ' + s.ifsc : '', s.upi ? 'UPI: ' + s.upi : ''].filter(Boolean);
-      var showQr = s.upi && pi.bal > 0;
+      var showQr = s.upi && pi.bal > 0, paid = pi.bal <= 0 && p.amt > 0, when = okDate(pi.last) ? fmt(pi.last, 1).toUpperCase() : '';
       if (bank.length || showQr) {
-        need(showQr ? 130 : bank.length * 13 + 30);
+        need(showQr ? 130 : Math.max(bank.length * 13 + 30, paid ? 80 : 0));
         y -= 22; var top = y; text('Payment details', M, y, 8, B, mut);
+        if (paid) stamp(W - M - 78, top - 26, when);
         bank.forEach(function (b) { wrap(b, 300, 9.5).forEach(function (l) { y -= 13; text(l, M, y, 9.5); }); });
+        if (paid) y = Math.min(y, top - 56);
         if (showQr) {
           var m = QR.make(upiLink(p)), n = m.length, sz = 96, cell = sz / (n + 4), qx = W - M - sz, qy = top - sz + 10;
           page.drawRectangle({ x: qx, y: qy, width: sz, height: sz, color: L.rgb(1, 1, 1) });
@@ -1435,6 +1546,7 @@ function buildPdf(p) {
           y = Math.min(y, qy - 14);
         }
       }
+      else if (paid) { need(80); y -= 14; stamp(W - M - 78, y - 26, when); y -= 56; }
       var notes = [p.note, s.terms].filter(Boolean).join('  |  ');
       if (notes) { y -= 18; wrap(notes, W - 2 * M, 9).forEach(function (l) { need(14); y -= 12; text(l, M, y, 9, F, mut); }); }
       need(70); y -= 34; right('For ' + (s.name || 'your firm'), W - M, y, 9.5, B); y -= 36; right('Authorised Signatory', W - M, y, 9, F, mut);
@@ -1634,11 +1746,11 @@ function listenTeam() {
 function authView() {
   if (MODE === 'boot') return '<div class="empty">Loading…</div>';
   if (MODE === 'checking') return '<div class="empty">Checking your access…</div>';
-  if (MODE === 'fberror') return '<div class="card auth"><h2>Could not open Office Desk</h2><p>' + esc(FBERR) + '</p><div class="acts"><button class="btn pri" data-a="retry">Try again</button>' + (FUSER ? '<button class="btn" data-a="signout">Sign out</button>' : '') + '</div></div>';
-  if (MODE === 'setup') return '<div class="card auth"><h2>Set up your office</h2><p>Signed in as <b>' + esc(FUSER.email) + '</b>. You will be the <b>owner</b>: you see payments, vendors and compliance, and you decide which staff get access.</p><p class="meta">Do this only from the office owner\'s own account. Staff create their own accounts and wait for your approval.</p><div class="acts"><button class="btn pri" data-a="setupOffice">Set up as owner</button><button class="btn" data-a="signout">Sign out</button></div></div>';
+  if (MODE === 'fberror') return '<div class="card auth"><h2>Could not open the app</h2><p>' + esc(FBERR) + '</p><div class="acts"><button class="btn pri" data-a="retry">Try again</button>' + (FUSER ? '<button class="btn" data-a="signout">Sign out</button>' : '') + '</div></div>';
+  if (MODE === 'setup') return '<div class="card auth"><h2>Set up your office</h2><p>Signed in as <b>' + esc(FUSER.email) + '</b>. You will be the <b>owner</b>: you see billing, creditors and compliance, and you decide which staff get access.</p><p class="meta">Do this only from the office owner\'s own account. Staff create their own accounts and wait for your approval.</p><div class="acts"><button class="btn pri" data-a="setupOffice">Set up as owner</button><button class="btn" data-a="signout">Sign out</button></div></div>';
   if (MODE === 'waiting') return '<div class="card auth"><h2>Waiting for access</h2><p>Your account <b>' + esc(FUSER ? FUSER.email : '') + '</b> is ready. The office owner needs to approve it once.</p><p class="meta">Ask the owner to open <b>Staff → App access</b> and tap Give access. This screen opens the office by itself after that.</p><div class="acts"><button class="btn" data-a="signout">Sign out</button></div></div>' + installCard();
   var su = !!F.signup;
-  return '<div class="card auth"><h2>' + (su ? 'Create your account' : 'Sign in') + '</h2><p class="meta">' + (su ? 'Staff: after you create your account, the office owner gives you access.' : 'Use the email and password you made for Office Desk.') + '</p>' +
+  return '<div class="card auth"><h2>' + (su ? 'Create your account' : 'Sign in') + '</h2><p class="meta">' + (su ? 'Staff: after you create your account, the office owner gives you access.' : 'Use the email and password you made for this app.') + '</p>' +
     '<form data-f="' + (su ? 'signup' : 'login') + '" novalidate>' + (su ? fld('l_name', 'Your name', inp('l_name', '', 'autocomplete="name" maxlength="80"')) : '') +
     fld('l_email', 'Email', inp('l_email', '', 'type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" maxlength="120"')) +
     fld('l_pass', 'Password', '<input id="l_pass" type="password" autocomplete="' + (su ? 'new-password' : 'current-password') + '" maxlength="100">', su ? 'At least 6 characters.' : '') +
@@ -1649,13 +1761,13 @@ function standalone() { try { return matchMedia('(display-mode: standalone)').ma
 function installCard() {
   if (!FBM || standalone()) return '';
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  return '<h2>Use it like an app</h2><div class="card"><div class="meta">' + (BIP ? 'Tap Install to put Office Desk on this phone\'s home screen.' : ios ? 'In Safari, tap the Share button, then Add to Home Screen.' : 'In Chrome, open the ⋮ menu and tap Install app or Add to Home screen.') + '</div>' + (BIP ? '<div class="acts"><button class="btn pri" data-a="install">Install app</button></div>' : '') + '</div>';
+  return '<h2>Use it like an app</h2><div class="card"><div class="meta">' + (BIP ? 'Tap Install to put ' + esc(brand()) + ' on this phone\'s home screen.' : ios ? 'In Safari, tap the Share button, then Add to Home Screen.' : 'In Chrome, open the ⋮ menu and tap Install app or Add to Home screen.') + '</div>' + (BIP ? '<div class="acts"><button class="btn pri" data-a="install">Install app</button></div>' : '') + '</div>';
 }
 function accessView() {
   var mem = TEAM.mem.filter(function (m) { return m.active; }), memIds = {};
   mem.forEach(function (m) { memIds[m.uid] = 1; });
   var req = TEAM.req.filter(function (r) { return !memIds[r.uid]; });
-  var h = '<h2>App access <span class="meta">who can open Office Desk</span></h2>';
+  var h = '<h2>App access <span class="meta">who can open this app</span></h2>';
   if (req.length) h += '<div class="card badb">' + req.map(function (r) { return '<div class="row"><div class="grow"><b>' + esc(r.name || r.email) + '</b><div class="meta">' + esc(r.email) + ' wants access' + (okDate(r.at.slice(0, 10)) ? ' · ' + fmt(r.at.slice(0, 10)) : '') + '</div></div><div class="acts" style="margin:0"><button class="btn pri sm" data-a="approve" data-id="' + r.uid + '">Give access</button><button class="btn sm del" data-a="reject" data-id="' + r.uid + '">Reject</button></div></div>'; }).join('') + '</div>';
   var me = FUSER ? FUSER.uid : '', ownerRow = META && META.owner ? '<div class="row"><div class="grow"><b>' + esc(META.owner === me ? FUSER.email : (META.email || 'Office owner')) + '</b><div class="meta">Owner' + (META.owner === me ? ' (you)' : '') + ' · full access</div></div></div>' : '';
   h += '<div class="card">' + ownerRow + mem.map(function (m) { var s = staffOf(m.sid); return '<div class="row"><div class="grow"><b>' + esc(m.name || m.email) + (m.uid === me ? ' (you)' : '') + '</b><div class="meta">' + esc(m.email) + ' · ' + (m.role === 'admin' ? 'Full access' : 'Clients and work only') + (s ? ' · ' + esc(s.name) : '') + '</div></div><button class="btn sm" data-a="member" data-id="' + m.uid + '">Change</button></div>'; }).join('') + '</div>';
@@ -1671,14 +1783,14 @@ function sheetApprove(u) {
   var r = TEAM.req.filter(function (x) { return x.uid === u; })[0]; if (!r) return;
   var nm = r.name || r.email.split('@')[0];
   sheet('Give access', '<form data-f="approve" data-id="' + u + '" novalidate><div class="sum"><b>' + esc(nm) + '</b><br>' + esc(r.email) + '</div>' +
-    fld('a_role', 'What can they open?', '<select id="a_role">' + opts([['staff', 'Clients and work only (staff)'], ['admin', 'Everything, including payments (partner)']], 'staff') + '</select>') +
+    fld('a_role', 'What can they open?', '<select id="a_role">' + opts([['staff', 'Clients and work only (staff)'], ['admin', 'Everything, including billing (partner)']], 'staff') + '</select>') +
     fld('a_sid', 'Which staff person is this?', staffPick('', u, nm), 'Links their login to the Staff list, so the Work tab opens on their own work.') +
     '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Give access</button></div></form>');
 }
 function sheetMember(u) {
   var m = TEAM.mem.filter(function (x) { return x.uid === u; })[0]; if (!m) return;
   sheet('Access for ' + (m.name || m.email), '<form data-f="member" data-id="' + u + '" novalidate><div class="sum">' + esc(m.email) + '</div>' +
-    fld('a_role', 'What can they open?', '<select id="a_role">' + opts([['staff', 'Clients and work only (staff)'], ['admin', 'Everything, including payments (partner)']], m.role) + '</select>') +
+    fld('a_role', 'What can they open?', '<select id="a_role">' + opts([['staff', 'Clients and work only (staff)'], ['admin', 'Everything, including billing (partner)']], m.role) + '</select>') +
     fld('a_sid', 'Which staff person is this?', staffPick(m.sid, u, m.name || m.email.split('@')[0])) +
     '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Save</button><button class="btn del" type="button" data-a="revoke" data-id="' + u + '">Remove access</button></div></form>');
 }
@@ -1729,20 +1841,20 @@ A.retry = function () { location.reload(); };
 A.approve = function (u) { sheetApprove(u); };
 A.member = function (u) { sheetMember(u); };
 A.reject = function (u, el) { armed(el, function () { FS.doc('requests/' + u).delete().then(function () { toast('Request removed'); }, function () { toast('Could not remove. Check your internet.'); }); }); };
-A.revoke = function (u) { var m = TEAM.mem.filter(function (x) { return x.uid === u; })[0]; ask('Remove access for ' + (m ? m.name || m.email : 'this person') + '?', 'They can no longer open Office Desk. Their past work stays.', 'Remove access', function () { FS.doc('members/' + u).delete().then(function () { toast('Access removed'); }, function () { toast('Could not remove access. Check your internet.'); }); }); };
+A.revoke = function (u) { var m = TEAM.mem.filter(function (x) { return x.uid === u; })[0]; ask('Remove access for ' + (m ? m.name || m.email : 'this person') + '?', 'They can no longer open the app. Their past work stays.', 'Remove access', function () { FS.doc('members/' + u).delete().then(function () { toast('Access removed'); }, function () { toast('Could not remove access. Check your internet.'); }); }); };
 A.install = function () { if (!BIP) return; var e = BIP; BIP = null; head(); e.prompt(); };
 function pwaSetup() {
   try {
     var add = function (tag, attrs) { var el = document.createElement(tag); Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); }); document.head.appendChild(el); };
     if (!document.querySelector('link[rel=manifest]')) add('link', { rel: 'manifest', href: 'manifest.webmanifest' });
-    add('meta', { name: 'theme-color', content: '#1f6f54' });
+    add('meta', { name: 'theme-color', content: '#15284d' });
     add('link', { rel: 'apple-touch-icon', href: 'icon-192.png' });
     add('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' });
-    add('meta', { name: 'apple-mobile-web-app-title', content: 'Office Desk' });
+    add('meta', { name: 'apple-mobile-web-app-title', content: brand().slice(0, 30) });
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
   } catch (e) {}
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); BIP = e; head(); schedule(); });
-  window.addEventListener('appinstalled', function () { BIP = null; head(); schedule(); toast('Office Desk installed'); });
+  window.addEventListener('appinstalled', function () { BIP = null; head(); schedule(); toast('App installed'); });
   window.addEventListener('online', function () { head(); });
   window.addEventListener('offline', function () { head(); });
 }
