@@ -86,6 +86,11 @@ h4{font:600 11px/1.3 var(--sans);color:var(--mut);margin:16px 0 6px;text-transfo
 .ps{opacity:.55}
 .drcr{font:600 10.5px/1 var(--sans);letter-spacing:.04em;color:var(--mut)}
 .nil{font:500 13px/1.4 var(--fig);color:var(--good)}
+.kind{display:block;font:600 10.5px/1.3 var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--mut);margin-bottom:3px}
+.msg{margin-top:8px;font-size:13px}
+.msg summary{cursor:pointer;color:var(--ac);font-weight:500;width:max-content}
+.msg p{margin:6px 0 0;padding:8px 10px;background:var(--soft);border-radius:6px;overflow-wrap:anywhere}
+.sent{font-size:13px;color:var(--mut);margin:4px 0 0}
 .meta{color:var(--mut);font-size:13px}
 .acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;font:500 14px/1.2 var(--sans);text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px 12px;min-height:36px;cursor:pointer}
@@ -295,6 +300,8 @@ function waNum(p) {
   return raw[0] === '+' && d.length >= 11 && d.length <= 15 && d.slice(0, 2) !== '91' ? d : '';
 }
 function wa(p, msg) { var n = waNum(p); return n ? 'https://wa.me/' + n + (msg ? '?text=' + encodeURIComponent(msg) : '') : ''; }
+/* a client's own WhatsApp group (invite link from Group info → Invite via link) */
+function grpLink(v) { var m = /^(?:https?:\/\/)?chat\.whatsapp\.com\/(?:invite\/)?([A-Za-z0-9_-]{10,60})(?:[?#].*)?$/i.exec(String(v || '').trim()); return m ? 'https://chat.whatsapp.com/' + m[1] : ''; }
 function telHref(p) { var d = String(p || '').replace(/[^\d+]/g, ''); return d ? 'tel:' + d : ''; }
 
 /* ================= constants ================= */
@@ -329,12 +336,12 @@ var NORM = {
     var g = str(o.gstin, 15).toUpperCase().replace(/\s/g, ''), pan = str(o.pan, 10).toUpperCase(), st = str(o.state, 2);
     if (!pan && GST_RE.test(g)) pan = g.slice(2, 12);
     if (GST_RE.test(g)) st = g.slice(0, 2);
-    return { id: o.id, name: str(o.name, 120) || 'Unnamed client', phone: str(o.phone, 30), email: str(o.email, 120), gstin: g, pan: pan, state: STATES[st] ? st : '', addr: str(o.addr, 400), notes: str(o.notes, 1000), ct: str(o.ct, 30) };
+    return { id: o.id, name: str(o.name, 120) || 'Unnamed client', phone: str(o.phone, 30), email: str(o.email, 120), gstin: g, pan: pan, state: STATES[st] ? st : '', addr: str(o.addr, 400), notes: str(o.notes, 1000), grp: grpLink(o.grp), prm: okDate(o.prm) ? o.prm : '', ct: str(o.ct, 30) };
   },
   staff: function (o) { return { id: o.id, name: str(o.name, 80) || 'Unnamed', role: str(o.role, 80), phone: str(o.phone, 30) }; },
   tasks: function (o) {
     var st = ['todo', 'doing', 'done'].indexOf(o.st) > -1 ? o.st : 'todo';
-    return { id: o.id, title: str(o.title, 200) || 'Untitled work', cid: str(o.cid, 80), cname: str(o.cname, 120), sid: str(o.sid, 80), due: okDate(o.due) ? o.due : '', st: st, done: okDate(o.done) ? o.done : '', note: str(o.note, 1000), ct: str(o.ct, 30) };
+    return { id: o.id, title: str(o.title, 200) || 'Untitled work', cid: str(o.cid, 80), cname: str(o.cname, 120), sid: str(o.sid, 80), due: okDate(o.due) ? o.due : '', st: st, done: okDate(o.done) ? o.done : '', note: str(o.note, 1000), rmd: okDate(o.rmd) ? o.rmd : '', ct: str(o.ct, 30) };
   },
   pay: function (o) {
     var legacy = o.tx == null, old = r2(num(o.amt)); if (!(old >= 0)) old = 0;
@@ -362,7 +369,7 @@ var NORM = {
     return { id: o.id, n: str(o.n, 80) || 'Compliance', f: f, d: d, m: m, o: (o.o === 0 || o.o === '0') ? 0 : 1, q4o: q4, x: x, cl: cl, since: since, ct: okDate(o.ct) ? o.ct : today() };
   }
 };
-function normMark(o) { var r = { f: {} }; if (o && okDate(o.due)) r.due = o.due; if (o && o.f && typeof o.f === 'object') Object.keys(o.f).forEach(function (k) { if (okDate(o.f[k])) r.f[k] = o.f[k]; }); return r; }
+function normMark(o) { var r = { f: {}, r: {} }; if (o && okDate(o.due)) r.due = o.due; ['f', 'r'].forEach(function (x) { if (o && o[x] && typeof o[x] === 'object') Object.keys(o[x]).forEach(function (k) { if (okDate(o[x][k])) r[x][k] = o[x][k]; }); }); return r; }
 function normSet(o) {
   o = o || {}; var g = str(o.gstin, 15).toUpperCase(), st = str(o.state, 2);
   if (GST_RE.test(g)) st = g.slice(0, 2);
@@ -441,15 +448,17 @@ function putSet(o) {
   schedule();
 }
 function markWrite(key, val, p) { OVERMARKS[key] = val; p.then(function (ok) { if (OVERMARKS[key] === val) delete OVERMARKS[key]; if (!ok) { S.marks = viewMarks(); schedule(); } }); }
-function putMarks(key, patch, due) {
-  var m = S.marks[key] ? { f: Object.assign({}, S.marks[key].f), due: S.marks[key].due } : { f: {} };
-  Object.keys(patch).forEach(function (c) { if (patch[c]) m.f[c] = patch[c]; else delete m.f[c]; });
+function putMarks(key, patch, due, field) {
+  field = field === 'r' ? 'r' : 'f';
+  var old = S.marks[key], m = { f: Object.assign({}, old ? old.f : {}), r: Object.assign({}, old && old.r ? old.r : {}) };
+  if (old && old.due) m.due = old.due;
+  Object.keys(patch).forEach(function (c) { if (patch[c]) m[field][c] = patch[c]; else delete m[field][c]; });
   if (due !== undefined) { if (due) m.due = due; else delete m.due; }
   if (!m.due) delete m.due;
   var copy = {}; Object.keys(S.marks).forEach(function (k) { copy[k] = S.marks[k]; }); copy[key] = m; S.marks = copy;
   if (MODE === 'db') {
-    var full = { f: m.f, due: m.due || null }, p;
-    if (MARKS_REMOTE[key]) { var up = {}; if (Object.keys(patch).length) { up.f = {}; Object.keys(patch).forEach(function (c) { up.f[c] = patch[c] || null; }); } if (due !== undefined) up.due = due || null; p = write(PATH.marks + '/' + key, 'update', up, full); }
+    var full = { f: m.f, r: m.r, due: m.due || null }, p;
+    if (MARKS_REMOTE[key]) { var up = {}; if (Object.keys(patch).length) { up[field] = {}; Object.keys(patch).forEach(function (c) { up[field][c] = patch[c] || null; }); } if (due !== undefined) up.due = due || null; p = write(PATH.marks + '/' + key, 'update', up, full); }
     else p = write(PATH.marks + '/' + key, 'set', full);
     markWrite(key, m, p);
   } else saveLocal();
@@ -654,10 +663,98 @@ function invMsg(p) {
   var c = client(p.cid), pi = pinfo(p), name = c ? c.name : p.cname;
   return 'Namaste ' + name + ', Invoice ' + (p.no || '-') + (p.date ? ' dated ' + fmt(p.date, 1) : '') + ': ' + inr(p.amt) + (pi.bal > 0 && pi.bal < p.amt ? ' (balance ' + inr(pi.bal) + ')' : '') + '.' + (p.due && pi.bal > 0 ? ' Due date: ' + fmt(p.due, 1) + '.' : '') + (S.set.upi && pi.bal > 0 ? ' UPI: ' + S.set.upi + '.' : '') + ' Dhanyavaad.' + sign();
 }
+function docsMsg(c, list) {
+  var t = today();
+  return 'Namaste ' + c.name + ', ye filings pending hain: ' + list.map(function (e) { return e.k.n + ' (' + pLabel(e.k, e.key) + ') - last date ' + fmt(e.due, 1) + (e.due < t ? ', nikal chuki hai' : ''); }).join('; ') + '. Kripya zaroori documents jald se jald bhej dein, taaki time par file ho sake. Dhanyavaad.' + sign();
+}
+function workMsg(s, list) {
+  var t = today();
+  return 'Namaste ' + s.name + ', aapka pending kaam: ' + list.map(function (x, i) { var c = client(x.cid); return (i + 1) + ') ' + x.title + (c ? ' - ' + c.name : '') + ' - last date ' + fmt(x.due, 1) + (x.due < t ? ' (late)' : x.due === t ? ' (aaj)' : ''); }).join('; ') + '. Kripya time par complete karein.' + sign();
+}
 function staffMsg(t) { var s = staffOf(t.sid); return 'Namaste ' + (s ? s.name : '') + ', kaam: ' + t.title + (client(t.cid) ? ' (' + client(t.cid).name + ')' : '') + (t.due ? ', last date ' + fmt(t.due, 1) : '') + '. Kripya time par complete karein.'; }
 function compMsg(k, key, c) {
   var due = pDue(k, key), late = due < today();
   return 'Namaste ' + c.name + ', ' + pLabel(k, key) + ' ka ' + k.n + (late ? ' abhi pending hai (last date ' + fmt(due, 1) + ' thi). Kripya documents turant bhej dein.' : ' ' + fmt(due, 1) + ' tak file karna hai. Kripya zaroori documents jald bhej dein.') + ' Dhanyavaad.' + sign();
+}
+
+/* Client messages open the client's own WhatsApp group with the message copied, ready to paste.
+   With no group link saved, WhatsApp opens with the message typed and asks which chat to send it to. */
+function cwa(c, msg, label, cls, rec) {
+  if (!c) return '';
+  var g = c.grp, href = g || 'https://wa.me/?text=' + encodeURIComponent(msg);
+  return '<a class="btn' + (cls ? ' ' + cls : '') + '" target="_blank" rel="noopener" href="' + esc(href) + '" data-a="rem" data-id="' + c.id + '" data-msg="' + esc(msg) + '"' + (g ? ' data-copy="1"' : '') + (rec || '') + '>' + label + (g ? ' in group' : '') + '</a>';
+}
+function copyText(text, okMsg) {
+  var no = function () { toast('This screen blocked copying. Open "See message" and copy it by hand.'); };
+  try { navigator.clipboard.writeText(text).then(function () { toast(okMsg); }, no); } catch (e) { no(); }
+}
+
+/* ---------- Today's reminders: who to remind, with the message ready ---------- */
+var LEAD = { M: 5, Q: 10, Y: 21 };
+function ago(d) { return okDate(d) ? daysBetween(d, today()) : 9999; }
+function deskItems() {
+  var t = today(), out = [];
+  /* payment: overdue, or due within 2 days; at most once a week per client */
+  S.clients.forEach(function (c) {
+    var open = S.pay.filter(function (p) { return p.cid === c.id && pinfo(p).bal > 0; });
+    if (!open.length || ago(c.prm) < 7) return;
+    var late = open.reduce(function (m, p) { return Math.max(m, pinfo(p).late); }, 0);
+    var soon = open.filter(function (p) { return p.due && p.due >= t && daysBetween(t, p.due) <= 2; }).sort(function (a, b) { return a.due < b.due ? -1 : 1; })[0];
+    if (!late && !soon) return;
+    out.push({ k: 'pay', c: c, who: c.name, kind: 'Payment reminder', late: late > 0, last: c.prm, msg: statementMsg(c),
+      note: inr(sum(open, function (p) { return pinfo(p).bal; })) + ' outstanding · ' + (late ? 'oldest ' + plural(late, 'day') + ' past due date' : 'due ' + fmt(soon.due)) });
+  });
+  /* documents: a filing is close (5 days for monthly, 10 quarterly, 21 yearly) or late; every 3 days per client */
+  var docs = {};
+  compEntries().forEach(function (e) {
+    if (daysBetween(t, e.due) > (LEAD[e.k.f] || 5)) return;
+    var mk = S.marks[e.k.id + '_' + e.key], r = (mk && mk.r) || {};
+    e.st.pending.forEach(function (c) { if (ago(r[c.id]) < 3) return; var d = docs[c.id] = docs[c.id] || { c: c, list: [], last: '' }; d.list.push(e); if (r[c.id] > d.last) d.last = r[c.id]; });
+  });
+  Object.keys(docs).forEach(function (id) {
+    var d = docs[id];
+    out.push({ k: 'doc', c: d.c, who: d.c.name, kind: 'Documents for filing', late: d.list.some(function (e) { return e.due < t; }), last: d.last, msg: docsMsg(d.c, d.list),
+      keys: d.list.map(function (e) { return e.k.id + '_' + e.key; }), note: d.list.map(function (e) { return e.k.n + ', ' + pLabel(e.k, e.key) + ' (last date ' + fmt(e.due) + ')'; }).join(' · ') });
+  });
+  /* staff: their work due by tomorrow or late; every 2 days */
+  var tm = addDays(t, 1), work = {};
+  S.tasks.forEach(function (x) {
+    if (x.st === 'done' || !x.due || x.due > tm || ago(x.rmd) < 2) return;
+    var st = staffOf(x.sid); if (!st || !waNum(st.phone)) return;
+    var w = work[st.id] = work[st.id] || { s: st, list: [], last: '' }; w.list.push(x); if (x.rmd > w.last) w.last = x.rmd;
+  });
+  Object.keys(work).forEach(function (id) {
+    var w = work[id]; w.list.sort(function (a, b) { return a.due < b.due ? -1 : 1; });
+    out.push({ k: 'work', s: w.s, who: w.s.name, kind: 'Staff work', late: w.list.some(function (x) { return x.due < t; }), last: w.last, msg: workMsg(w.s, w.list),
+      tasks: w.list.map(function (x) { return x.id; }), note: w.list.map(function (x) { return x.title + ' (' + (x.due < t ? 'late' : x.due === t ? 'today' : 'tomorrow') + ')'; }).join(' · ') });
+  });
+  var order = { doc: 0, pay: 1, work: 2 };
+  return out.sort(function (a, b) { return (b.late - a.late) || (order[a.k] - order[b.k]) || a.who.localeCompare(b.who); });
+}
+function deskSent() {
+  var t = today(), n = [];
+  S.clients.forEach(function (c) { if (c.prm === t) n.push(c.name + ' (payment)'); });
+  var dc = {}; Object.keys(S.marks).forEach(function (k) { var r = S.marks[k].r || {}; Object.keys(r).forEach(function (cid) { if (r[cid] === t && client(cid)) dc[cid] = 1; }); });
+  Object.keys(dc).forEach(function (cid) { n.push(client(cid).name + ' (documents)'); });
+  var ws = {}; S.tasks.forEach(function (x) { if (x.rmd === t && staffOf(x.sid)) ws[x.sid] = 1; });
+  Object.keys(ws).forEach(function (sid) { n.push(staffOf(sid).name + ' (work)'); });
+  return n;
+}
+function deskView() {
+  var items = deskItems(), sent = deskSent();
+  if (!items.length && !sent.length) return '';
+  var h = '<h2>Today\'s reminders <span class="meta">' + (items.length ? items.length + ' to send' : 'all sent') + '</span></h2>';
+  h += items.map(function (it) {
+    var c = it.c, rec = it.k === 'pay' ? ' data-k="pay"' : it.k === 'doc' ? ' data-k="doc" data-keys="' + esc(it.keys.join(' ')) + '"' : '';
+    var btn = it.k === 'work' ? '<a class="btn pri" target="_blank" rel="noopener" href="' + esc(wa(it.s.phone, it.msg)) + '" data-a="rem" data-k="work" data-id="' + it.s.id + '" data-tasks="' + esc(it.tasks.join(' ')) + '">Send to ' + esc(it.s.name.split(' ')[0]) + '</a>'
+      : cwa(c, it.msg, 'Send', 'pri', rec);
+    return '<div class="card' + (it.late ? ' badb' : '') + '"><span class="kind">' + it.kind + '</span><div class="top"><div class="grow"><b>' + esc(it.who) + '</b><div class="meta">' + esc(it.note) + '</div>' +
+      '<div class="meta">' + (it.last ? 'Last reminder ' + fmt(it.last) : 'No reminder sent yet') + (c && !c.grp ? ' · no group link saved, WhatsApp will ask which chat' : '') + '</div></div></div>' +
+      '<details class="msg"><summary>See message</summary><p>' + esc(it.msg) + '</p></details>' +
+      '<div class="acts">' + btn + (c && !c.grp ? '<button class="btn" data-a="editClient" data-id="' + c.id + '">Add group link</button>' : '') + '</div></div>';
+  }).join('');
+  if (sent.length) h += '<p class="sent">Sent today: ' + esc(sent.join(', ')) + '</p>';
+  return h;
 }
 
 /* ================= view state + rendering ================= */
@@ -752,6 +849,7 @@ function homeView() {
     stat('Overdue', sideAmt(od, 'Dr'), over.length ? plural(over.length, 'invoice') + ' past due date' : 'Nothing past due', od > 0 ? 'bad' : '') +
     stat('Open work', String(tasks.length), late.length ? late.length + ' past last date' : 'None late', late.length ? 'bad' : '') +
     stat('Sundry creditors', sideAmt(vbal, 'Cr'), vopen ? plural(vopen, 'bill') + ' to pay' : 'No bills to pay') + '</div>';
+  h += deskView();
   var att = '';
   var ce = compEntries().filter(function (e) { return e.st.pending.length && (e.over || daysBetween(t, e.due) <= 7); });
   if (ce.length) att += '<h2>Filings due</h2>' + ce.slice(0, 8).map(compCard).join('');
@@ -794,7 +892,7 @@ function clientsView() {
     var d = dm[c.id] || 0, w = wa(c.phone), tl = telHref(c.phone);
     return '<div class="card"><div class="top"><div class="grow"><button class="lnk" data-a="openClient" data-id="' + c.id + '">' + esc(c.name) + '</button><div class="meta">' + esc(c.phone || 'No phone') + (c.gstin ? ' · ' + esc(c.gstin) : c.pan ? ' · PAN ' + esc(c.pan) : '') + '</div></div>' +
       (ROLE === 'admin' ? '<div class="amt">' + (d ? '<span class="fig">' + figH(d) + dc('Dr') + '</span><span class="meta">outstanding</span>' : '<span class="nil">Nil</span>') + '</div>' : '') + '</div>' +
-      '<div class="acts">' + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, 'Namaste ' + c.name + ', ')) + '">WhatsApp</a>' : '') + (tl ? '<a class="btn" href="' + esc(tl) + '">Call</a>' : '') + '<button class="btn" data-a="openClient" data-id="' + c.id + '">Details</button><button class="btn" data-a="editClient" data-id="' + c.id + '">Edit</button></div></div>';
+      '<div class="acts">' + (c.grp ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(c.grp) + '">WhatsApp group</a>' : w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, 'Namaste ' + c.name + ', ')) + '">WhatsApp</a>' : '') + (tl ? '<a class="btn" href="' + esc(tl) + '">Call</a>' : '') + '<button class="btn" data-a="openClient" data-id="' + c.id + '">Details</button><button class="btn" data-a="editClient" data-id="' + c.id + '">Edit</button></div></div>';
   }).join('') + moreBtn('clients', n, L.length) : emptyBox(null, 'No client matches “' + esc(QS.clients) + '”.'));
 }
 function clientDetail() {
@@ -804,15 +902,15 @@ function clientDetail() {
     (c.phone ? '<dt>Mobile</dt><dd>' + esc(c.phone) + '</dd>' : '') + (c.email ? '<dt>Email</dt><dd>' + esc(c.email) + '</dd>' : '') +
     (c.gstin ? '<dt>GSTIN</dt><dd>' + esc(c.gstin) + '</dd>' : '') + (c.pan ? '<dt>PAN</dt><dd>' + esc(c.pan) + '</dd>' : '') +
     (c.state ? '<dt>State</dt><dd>' + esc(stateName(c.state)) + '</dd>' : '') + (c.addr ? '<dt>Address</dt><dd>' + esc(c.addr).replace(/\n/g, '<br>') + '</dd>' : '') +
-    (c.notes ? '<dt>Notes</dt><dd>' + esc(c.notes).replace(/\n/g, '<br>') + '</dd>' : '') + '</dl>' +
+    (c.notes ? '<dt>Notes</dt><dd>' + esc(c.notes).replace(/\n/g, '<br>') + '</dd>' : '') + '<dt>WhatsApp group</dt><dd>' + (c.grp ? 'Linked. Reminders open this group.' : 'Not linked. Add the group invite link with Edit.') + '</dd></dl>' +
     (!c.phone && !c.email && !c.gstin && !c.pan && !c.addr && !c.notes ? '<div class="meta">No details yet.</div>' : '') +
-    '<div class="acts">' + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, 'Namaste ' + c.name + ', ')) + '">WhatsApp</a>' : '') + (tl ? '<a class="btn" href="' + esc(tl) + '">Call</a>' : '') + (c.phone ? '<button class="btn" data-a="copy" data-id="' + esc(c.phone) + '">Copy number</button>' : '') + '<button class="btn" data-a="editClient" data-id="' + c.id + '">Edit</button></div></div>';
+    '<div class="acts">' + (c.grp ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(c.grp) + '">WhatsApp group</a>' : '') + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, 'Namaste ' + c.name + ', ')) + '">WhatsApp</a>' : '') + (tl ? '<a class="btn" href="' + esc(tl) + '">Call</a>' : '') + (c.phone ? '<button class="btn" data-a="copy" data-id="' + esc(c.phone) + '">Copy number</button>' : '') + '<button class="btn" data-a="editClient" data-id="' + c.id + '">Edit</button></div></div>';
   if (ROLE === 'admin') {
     var inv = S.pay.filter(function (p) { return p.cid === c.id; }), open = inv.filter(function (p) { return pinfo(p).bal > 0; }).sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
     var tot = sum(open, function (p) { return pinfo(p).bal; }), tds = sum(inv, function (p) { return fyStart(p.date || t) === fyStart(t) ? pinfo(p).tds : 0; });
     h += '<h2>Outstanding invoices <span class="meta">' + (open.length ? inr(tot) + dc('Dr') : 'Nil') + '</span></h2>';
     h += open.length ? open.map(invCard).join('') : '<div class="empty">No unpaid invoices.' + (inv.length ? ' ' + plural(inv.length, 'invoice') + ' fully paid.' : '') + '</div>';
-    h += '<div class="acts"><button class="btn pri" data-a="newInv" data-id="' + c.id + '">+ New invoice</button>' + (open.length && w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, statementMsg(c))) + '">Send statement on WhatsApp</a>' : '') + (inv.length - open.length ? '<button class="btn" data-a="clientPaid" data-id="' + c.id + '">Paid invoices (' + (inv.length - open.length) + ')</button>' : '') + '</div>';
+    h += '<div class="acts"><button class="btn pri" data-a="newInv" data-id="' + c.id + '">+ New invoice</button>' + (open.length ? cwa(c, statementMsg(c), 'Send statement', '', ' data-k="pay"') : '') + (inv.length - open.length ? '<button class="btn" data-a="clientPaid" data-id="' + c.id + '">Paid invoices (' + (inv.length - open.length) + ')</button>' : '') + '</div>';
     if (tds) h += '<p class="meta">TDS deducted by this client in FY ' + fyLabel(fyStart(t)) + ': ' + inr(tds) + ' (match with Form 26AS).</p>';
     var ks = S.comps.filter(function (k) { return k.cl.indexOf(c.id) > -1; });
     if (ks.length) h += '<h2>Compliance</h2>' + ks.map(function (k) { var key = pUpcoming(k, t), st = pState(k, key), filed = !!st.f[c.id]; return '<div class="card top"><div class="grow"><b>' + esc(k.n) + '</b><div class="meta">' + esc(pLabel(k, key)) + ' · last date ' + fmt(st.due, 1) + '</div></div>' + (filed ? '<span class="tag ok">Filed</span>' : '<button class="btn sm" data-a="markOne" data-id="' + k.id + '" data-k="' + key + '" data-c="' + c.id + '">Mark filed</button>') + '</div>'; }).join('');
@@ -853,7 +951,7 @@ function invCard(p) {
   var pi = pinfo(p), c = client(p.cid), w = c && wa(c.phone);
   return '<div class="card led' + (pi.st === 'over' ? ' badb' : '') + '">' + ledDate(p.date) + '<div class="ld-b"><div class="top"><div class="grow"><button class="lnk" data-a="openInv" data-id="' + p.id + '">' + esc(cn(p)) + '</button><div class="meta">' + esc(p.no || 'No number') + (p.due ? ' · due ' + fmt(p.due) : '') + '</div></div>' +
     '<div class="amt"><span class="fig">' + figH(p.amt) + '</span>' + (pi.bal > 0 && pi.bal < p.amt ? '<span class="meta">Balance <span class="fig">' + figH(pi.bal) + '</span>' + dc('Dr') + '</span>' : '') + payTag(pi) + '</div></div>' +
-    '<div class="acts">' + (pi.bal > 0 && w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, payMsg(p))) + '">Remind</a>' : '') + (pi.bal > 0 ? '<button class="btn pri" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="openInv" data-id="' + p.id + '">' + (pi.bal > 0 ? 'Invoice' : 'View invoice') + '</button></div></div></div>';
+    '<div class="acts">' + (pi.bal > 0 && c ? cwa(c, payMsg(p), 'Remind', '', ' data-k="pay"') : '') + (pi.bal > 0 ? '<button class="btn pri" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="openInv" data-id="' + p.id + '">' + (pi.bal > 0 ? 'Invoice' : 'View invoice') + '</button></div></div></div>';
 }
 function payView() {
   var t = today(), fy = fyStart(t), mk = monthKey(t), q = QS.pay.toLowerCase();
@@ -904,7 +1002,7 @@ function invDetail() {
   var pi = pinfo(p), c = client(p.cid), w = c && wa(c.phone);
   var h = '<div class="dhead"><h2>Invoice ' + esc(p.no || '') + '</h2><div class="meta">' + esc(cn(p)) + ' · ' + payTag(pi) + '</div></div>' +
     (!S.set.name ? '<div class="note">Your firm name and address are missing on this invoice.<div class="acts"><button class="btn pri" data-a="settings">Add firm details</button></div></div>' : '') +
-    '<div class="acts"><button class="btn pri" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, invMsg(p))) + '">Send on WhatsApp</a>' : '') + (pi.bal > 0 ? '<button class="btn" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="editInv" data-id="' + p.id + '">Edit</button></div>' +
+    '<div class="acts"><button class="btn pri" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' + (c ? cwa(c, invMsg(p), 'Send on WhatsApp') : '') + (pi.bal > 0 ? '<button class="btn" data-a="rcv" data-id="' + p.id + '">Record receipt</button>' : '') + '<button class="btn" data-a="editInv" data-id="' + p.id + '">Edit</button></div>' +
     '<p class="meta">To share the invoice, download the PDF and attach it in WhatsApp or email.</p>' + invPaper(p);
   if (p.rcv.length) h += '<h2>Receipts</h2>' + rcvList(p.rcv, null);
   return h;
@@ -974,7 +1072,7 @@ function compDetail() {
     '<div class="card"><div class="top"><div class="grow"><div class="meta">Last date</div><div class="big">' + fmt(st.due, 1) + '</div>' + (st.due !== std ? '<div class="meta">Extended (standard date ' + fmt(std, 1) + ')</div>' : '') + '</div><div class="amt">' + dueText(st.due, st.pending.length) + '</div></div>' +
     '<div class="meta" style="margin-top:6px">' + st.filed.length + ' of ' + st.req.length + ' filed</div><div class="bar"><i style="width:' + pct + '%"></i></div>' +
     '<div class="acts"><button class="btn" data-a="pdue">Change last date</button>' + (st.pending.length > 1 ? '<button class="btn" data-a="pall">Mark all filed</button>' : '') + '<button class="btn" data-a="editComp" data-id="' + k.id + '">Edit clients and dates</button></div></div>';
-  h += '<h2>Pending <span class="meta">' + st.pending.length + '</span></h2>' + (st.pending.length ? '<div class="card">' + st.pending.map(function (c) { var w = wa(c.phone); return '<div class="row"><div class="grow"><b>' + esc(c.name) + '</b>' + (c.gstin ? '<div class="meta">' + esc(c.gstin) + '</div>' : '') + '</div><div class="acts" style="margin:0">' + (w ? '<a class="btn sm" target="_blank" rel="noopener" href="' + esc(wa(c.phone, compMsg(k, key, c))) + '">Remind</a>' : '') + '<button class="btn pri sm" data-a="mark" data-id="' + c.id + '">Mark filed</button></div></div>'; }).join('') + '</div>' : '<div class="empty">' + (st.req.length ? 'Everyone is filed for this period.' : k.cl.some(function (c) { return client(c); }) ? 'The selected clients were added after this period, so nothing is due here.' : 'No clients selected for this compliance.') + '</div>');
+  h += '<h2>Pending <span class="meta">' + st.pending.length + '</span></h2>' + (st.pending.length ? '<div class="card">' + st.pending.map(function (c) { return '<div class="row"><div class="grow"><b>' + esc(c.name) + '</b>' + (c.gstin ? '<div class="meta">' + esc(c.gstin) + '</div>' : '') + '</div><div class="acts" style="margin:0">' + cwa(c, compMsg(k, key, c), 'Remind', 'sm', ' data-k="doc" data-keys="' + esc(k.id + '_' + key) + '"') + '<button class="btn pri sm" data-a="mark" data-id="' + c.id + '">Mark filed</button></div></div>'; }).join('') + '</div>' : '<div class="empty">' + (st.req.length ? 'Everyone is filed for this period.' : k.cl.some(function (c) { return client(c); }) ? 'The selected clients were added after this period, so nothing is due here.' : 'No clients selected for this compliance.') + '</div>');
   if (st.filed.length) h += '<h2>Filed <span class="meta">' + st.filed.length + '</span></h2><div class="card">' + st.filed.map(function (c) { return '<div class="row"><div class="grow"><b>' + esc(c.name) + '</b><div class="meta">Filed on ' + fmt(st.f[c.id], 1) + '</div></div><button class="btn sm" data-a="unmark" data-id="' + c.id + '">Undo</button></div>'; }).join('') + '</div>';
   return h;
 }
@@ -1030,13 +1128,14 @@ function ask(title, msg, ok, fn) {
 var ASK = null;
 
 function sheetClient(id) {
-  var c = id ? client(id) : null, v = c || { name: '', phone: '', email: '', gstin: '', pan: '', state: '', addr: '', notes: '' };
+  var c = id ? client(id) : null, v = c || { name: '', phone: '', email: '', gstin: '', pan: '', state: '', addr: '', notes: '', grp: '' };
   sheet(c ? 'Edit client' : 'New client', '<form data-f="client" data-id="' + esc(id || '') + '" novalidate>' +
     fld('f_name', 'Client name *', inp('f_name', v.name, 'maxlength="120" autocomplete="off"')) +
     '<div class="two">' + fld('f_phone', 'Mobile', inp('f_phone', v.phone, 'inputmode="tel" maxlength="30" autocomplete="off"')) + fld('f_email', 'Email', inp('f_email', v.email, 'type="email" maxlength="120" autocomplete="off"')) + '</div>' +
     '<div class="two">' + fld('f_gstin', 'GSTIN', inp('f_gstin', v.gstin, 'maxlength="15" autocapitalize="characters" autocomplete="off" spellcheck="false" data-i="gstFill"')) + fld('f_pan', 'PAN', inp('f_pan', v.pan, 'maxlength="10" autocapitalize="characters" autocomplete="off" spellcheck="false"')) + '</div>' +
     fld('f_state', 'State', '<select id="f_state">' + stateOpts(v.state) + '</select>', 'Filled from the GSTIN. Decides CGST+SGST or IGST on invoices.') +
     fld('f_addr', 'Address', '<textarea id="f_addr" rows="2" maxlength="400">' + esc(v.addr) + '</textarea>') +
+    fld('f_grp', 'WhatsApp group link', inp('f_grp', v.grp || '', 'inputmode="url" maxlength="120" autocomplete="off" spellcheck="false" placeholder="https://chat.whatsapp.com/…"'), 'In the client\'s group: Group info → Invite via link → Copy link. Reminders and invoices for this client then open this group.') +
     fld('f_notes', 'Notes', '<textarea id="f_notes" rows="2" maxlength="1000">' + esc(v.notes) + '</textarea>', 'Staff can see these notes.') +
     '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (c ? 'Save changes' : 'Add client') + '</button>' + (c && ROLE === 'admin' ? '<button class="btn del" type="button" data-a="delClient" data-id="' + c.id + '">Delete client</button>' : '') + '</div></form>');
 }
@@ -1159,7 +1258,8 @@ function sheetExports() {
 var FORMS = {
   client: function (f) {
     var id = f.dataset.id, g = val('f_gstin').toUpperCase().replace(/\s/g, ''), pan = val('f_pan').toUpperCase().replace(/\s/g, ''), old = id ? client(id) : null;
-    var o = { id: id || uid(), name: val('f_name'), phone: val('f_phone'), email: val('f_email'), gstin: g, pan: pan, state: val('f_state'), addr: val('f_addr'), notes: val('f_notes'), ct: old ? old.ct : new Date().toISOString() };
+    var o = { id: id || uid(), name: val('f_name'), phone: val('f_phone'), email: val('f_email'), gstin: g, pan: pan, state: val('f_state'), addr: val('f_addr'), notes: val('f_notes'), grp: grpLink(val('f_grp')), prm: old ? old.prm : '', ct: old ? old.ct : new Date().toISOString() };
+    if (val('f_grp') && !o.grp) return ferr('Paste the group invite link. It starts with https://chat.whatsapp.com/', 'f_grp');
     if (!o.name) return ferr('Enter the client name.', 'f_name');
     if (o.phone && !phoneOk(o.phone)) return ferr('Mobile number should have 10 digits. You can add +91 in front.', 'f_phone');
     if (o.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(o.email)) return ferr('The email address looks incomplete.', 'f_email');
@@ -1302,6 +1402,15 @@ var A = {
   tdone: function () { F.tdone = !F.tdone; render(); },
   staffWork: function (id) { F.tstaff = id; go('tasks'); },
   clientPaid: function (id) { var c = client(id); QS.pay = c ? c.name : ''; F.pay = 'paid'; go('pay'); },
+  rem: function (id, el) {
+    var d = el.dataset, t = today();
+    if (d.copy) copyText(d.msg, 'Message copied. In the group, tap the message box, paste and send.');
+    setTimeout(function () {
+      if (d.k === 'pay') { var c = client(id); if (c && c.prm !== t) put('clients', Object.assign({}, c, { prm: t })); }
+      else if (d.k === 'doc') (d.keys || '').split(' ').filter(Boolean).forEach(function (key) { var p = {}; p[id] = t; putMarks(key, p, undefined, 'r'); });
+      else if (d.k === 'work') (d.tasks || '').split(' ').filter(Boolean).forEach(function (tid) { var x = find('tasks', tid); if (x && x.rmd !== t) put('tasks', Object.assign({}, x, { rmd: t })); });
+    }, 300);
+  },
   copy: function (id) { var done = function () { toast('Number copied'); }; try { navigator.clipboard.writeText(id).then(done, function () { toast('Copy is blocked here. Press and hold the number to copy it.'); }); } catch (e) { toast('Copy is blocked here. Press and hold the number to copy it.'); } },
   tds10: function (id) { var p = find('pay', id); if (!p) return; var pi = pinfo(p), t = r2(p.tx * 0.10); if (t > pi.bal) t = pi.bal; $('#r_tds').value = t; $('#r_amt').value = r2(pi.bal - t); },
   delClient: function (id) {
@@ -1411,7 +1520,7 @@ function importInto(m, done) {
   var jobs = [];
   types.forEach(function (t) { m[t].forEach(function (r) { jobs.push(function () { return putQuiet(t, r); }); }); });
   if (ROLE === 'admin') {
-    Object.keys(m.marks).forEach(function (k) { jobs.push(function () { var mk = m.marks[k], full = { f: mk.f, due: mk.due || null }, p = write(PATH.marks + '/' + k, 'set', full); var c = {}; Object.keys(S.marks).forEach(function (z) { c[z] = S.marks[z]; }); c[k] = mk; S.marks = c; markWrite(k, mk, p); return p; }); });
+    Object.keys(m.marks).forEach(function (k) { jobs.push(function () { var mk = m.marks[k], full = { f: mk.f, r: mk.r || {}, due: mk.due || null }, p = write(PATH.marks + '/' + k, 'set', full); var c = {}; Object.keys(S.marks).forEach(function (z) { c[z] = S.marks[z]; }); c[k] = mk; S.marks = c; markWrite(k, mk, p); return p; }); });
     if (!S.set.name && m.set.name) jobs.push(function () { var mine = S.set = m.set; OVERSET = mine; return write(SETPATH, 'set', mine).then(function (r) { if (OVERSET === mine) OVERSET = null; return r; }); });
   }
   var total = jobs.length, ok = 0, bad = 0;
@@ -1428,7 +1537,7 @@ function csvCell(v) { if (typeof v === 'number') return String(v); v = v == null
 function csvText(rows) { return '﻿' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n'); }
 function exportCsv(kind) {
   var rows, t = today(), name = kind;
-  if (kind === 'clients') { var dm = dueMap(); rows = [['Name', 'Mobile', 'Email', 'GSTIN', 'PAN', 'State', 'Address', 'Notes', 'Amount due']].concat(S.clients.slice().sort(byName).map(function (c) { return [c.name, c.phone, c.email, c.gstin, c.pan, STATES[c.state] || '', c.addr, c.notes, dm[c.id] || 0]; })); }
+  if (kind === 'clients') { var dm = dueMap(); rows = [['Name', 'Mobile', 'Email', 'GSTIN', 'PAN', 'State', 'Address', 'Notes', 'WhatsApp group', 'Amount due', 'Last payment reminder']].concat(S.clients.slice().sort(byName).map(function (c) { return [c.name, c.phone, c.email, c.gstin, c.pan, STATES[c.state] || '', c.addr, c.notes, c.grp, dm[c.id] || 0, c.prm]; })); }
   else if (kind === 'invoices') rows = [['Invoice no.', 'Invoice date', 'Client', 'Client GSTIN', 'Description', 'SAC', 'Taxable value', 'GST %', 'CGST', 'SGST', 'IGST', 'Total', 'Received', 'TDS', 'Balance', 'Due date', 'Status']].concat(S.pay.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; }).map(function (p) { var c = client(p.cid) || {}, pi = pinfo(p); return [p.no, p.date, cn(p), c.gstin || '', p.desc, p.sac, p.tx, p.rate, p.cgst, p.sgst, p.igst, p.amt, pi.rec, pi.tds, pi.bal, p.due, { paid: 'Paid', over: 'Overdue', today: 'Due today', part: 'Part paid', open: 'Pending' }[pi.st]]; }));
   else if (kind === 'receipts') { rows = [['Date', 'Client', 'Invoice no.', 'Amount received', 'TDS', 'Mode', 'Reference']]; S.pay.forEach(function (p) { p.rcv.forEach(function (r) { rows.push([r.date, cn(p), p.no, r.amt, r.tds, r.mode, r.ref]); }); }); rows = [rows[0]].concat(rows.slice(1).sort(function (a, b) { return a[0] < b[0] ? -1 : 1; })); }
   else if (kind === 'bills') rows = [['Party', 'Bill no.', 'Bill date', 'Pay by', 'Amount', 'Paid', 'TDS', 'Balance', 'Remarks']].concat(S.vp.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; }).map(function (x) { var vi = vinfo(x); return [x.party, x.bill, x.date, x.due, x.amt, vi.paid, vi.tds, vi.bal, x.rem]; }));
