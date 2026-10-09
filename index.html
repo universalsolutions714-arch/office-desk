@@ -95,6 +95,7 @@ h4{font:600 11px/1.3 var(--sans);color:var(--mut);margin:16px 0 6px;text-transfo
 .sent{font-size:13px;color:var(--mut);margin:4px 0 0}
 .msgbox{background:var(--soft);border-radius:6px;padding:10px 12px;user-select:all;-webkit-user-select:all;overflow-wrap:anywhere;margin:8px 0}
 .steps{margin:6px 0 4px;padding-left:22px;font-size:14px;color:var(--mut)}
+.btn.wait{opacity:.55;pointer-events:none}
 .steps li{margin:2px 0}
 #send_note{color:var(--ink);font-weight:500}
 .meta{color:var(--mut);font-size:13px}
@@ -687,27 +688,46 @@ function compMsg(k, key, c) {
 /* Client messages open a "Send on WhatsApp" sheet. On phones the message (or the invoice PDF) goes through
    the share menu, where the client's group is picked; with a group link saved, "Copy and open group" opens that
    exact group with the message copied for pasting. WhatsApp cannot open a group with a message already typed. */
-var CANSHARE = !!(navigator.share) && window.self === window.top && !!(window.matchMedia && matchMedia('(pointer:coarse)').matches), SEND = null;
+var TOUCH = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches), TOPWIN = window.self === window.top;
+var CANSHARE = !!navigator.share && TOPWIN && TOUCH, SEND = null;
+/* PDF files can go through the share menu on phones and on Windows laptops (Windows 11 lists WhatsApp there) */
+function canShareFiles() { try { return !!navigator.share && !!navigator.canShare && TOPWIN && typeof File === 'function' && navigator.canShare({ files: [new File(['%PDF-1.4'], 'x.pdf', { type: 'application/pdf' })] }); } catch (e) { return false; } }
 function sendBtn(c, label, cls, t, ref) {
   if (!c) return '';
   return '<button class="btn' + (cls ? ' ' + cls : '') + '" type="button" data-a="send" data-id="' + c.id + '" data-t="' + t + '"' + (ref ? ' data-ref="' + esc(ref) + '"' : '') + '>' + label + '</button>';
 }
+function linkBtn(href, act, label, cls, id) { return '<a class="btn' + (cls ? ' ' + cls : '') + '"' + (id ? ' id="' + id + '"' : '') + ' target="_blank" rel="noopener" href="' + esc(href) + '" data-a="' + act + '">' + label + '</a>'; }
+function waPick(msg) { return 'https://wa.me/?text=' + encodeURIComponent(msg); }
 function sendSheet(c, msg, rec, p) {
-  var g = c.grp, my = SEND = { c: c, msg: msg, rec: rec, p: p, file: null };
-  var steps = CANSHARE ? ['Tap ' + (p ? 'Share invoice PDF' : 'Share in WhatsApp') + ' and pick WhatsApp.', 'Choose the group of ' + c.name + '.', 'Tap Send.']
-    : g ? ['Tap Copy and open group.', 'In the group, press and hold the message box and tap Paste.', 'Tap Send.']
-    : ['Tap Open WhatsApp. The message is already typed.', 'Choose the group of ' + c.name + '.', 'Tap Send.'];
-  sheet('Send on WhatsApp', '<p class="meta">' + (g ? 'For the WhatsApp group of ' + esc(c.name) + '.' : 'No group link is saved for ' + esc(c.name) + ', so WhatsApp will ask which chat to use.') + '</p>' +
-    '<p class="msgbox" id="send_msg">' + esc(msg) + '</p><ol class="steps">' + steps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol><div class="acts">' +
-    (p && CANSHARE ? '<button class="btn pri" type="button" data-a="sendPdf" id="send_pdf" disabled>Preparing PDF…</button>' : '') +
-    (CANSHARE ? '<button class="btn' + (p ? '' : ' pri') + '" type="button" data-a="sendShare">' + (p ? 'Share message only' : 'Share in WhatsApp') + '</button>' : '') +
-    (g ? '<a class="btn' + (CANSHARE ? '' : ' pri') + '" target="_blank" rel="noopener" href="' + esc(g) + '" data-a="sendGroup">Copy and open group</a>'
-       : '<a class="btn' + (CANSHARE ? '' : ' pri') + '" target="_blank" rel="noopener" href="' + esc('https://wa.me/?text=' + encodeURIComponent(msg)) + '" data-a="sendPick">Open WhatsApp</a>') +
-    (p && !CANSHARE ? '<button class="btn" type="button" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' : '') + '</div>' +
-    (p && !CANSHARE ? '<p class="meta">To send the invoice itself, download the PDF and attach it in the group (Attach → Document).</p>' : '') +
-    '<p class="meta" id="send_note" hidden></p>');
-  if (p && CANSHARE) pdfFile(p).then(function (f) { if (SEND !== my) return; my.file = f; var b = $('#send_pdf'); if (b) { b.disabled = false; b.textContent = 'Share invoice PDF'; } },
-    function () { var b = $('#send_pdf'); if (b && SEND === my) b.textContent = 'PDF could not be made'; });
+  var g = c.grp, my = SEND = { c: c, msg: msg, rec: rec, p: p, pdf: null }, fs = !!p && canShareFiles(), nm = c.name, b = [], st, extra = '';
+  var wait = '" disabled>Preparing PDF…</button>', pre = ' (on the WhatsApp page, click Continue to chat if it asks)';
+  if (CANSHARE) {
+    if (fs) b.push('<button class="btn pri" type="button" data-a="sendPdf" id="send_pdf' + wait);
+    b.push('<button class="btn' + (fs ? '' : ' pri') + '" type="button" data-a="sendShare">' + (p ? 'Share message only' : 'Share in WhatsApp') + '</button>');
+    b.push(g ? linkBtn(g, 'sendGroup', 'Copy and open group', '') : linkBtn(waPick(msg), 'sendPick', 'Open WhatsApp', ''));
+    st = ['Tap ' + (fs ? 'Share invoice PDF' : 'Share in WhatsApp') + ' and pick WhatsApp.', 'Choose the group of ' + nm + '.', 'Tap Send.'];
+  } else if (p) {
+    if (fs) b.push('<button class="btn pri" type="button" data-a="sendPdf" id="send_pdf' + wait);
+    b.push(g ? linkBtn(g, 'sendAll', 'Preparing PDF…', (fs ? '' : 'pri') + ' wait', 'send_all') : '<button class="btn' + (fs ? '' : ' pri') + '" type="button" data-a="sendAll" id="send_all' + wait);
+    st = fs ? ['Click Share PDF to WhatsApp and pick WhatsApp.', 'Choose the group of ' + nm + '.', 'Click Send.']
+      : g ? ['Click the button: the PDF downloads, the message is copied and the group opens' + pre + '.', 'Drag the PDF from your downloads into the chat, or use Attach → Document.', 'Press Ctrl+V to add the message, then Enter.']
+      : ['Click the button: the PDF downloads and the message is copied.', 'Open the group of ' + nm + ' in WhatsApp and drag the PDF in, or use Attach → Document.', 'Press Ctrl+V to add the message, then Enter.'];
+    if (fs) extra = '<p class="meta">No WhatsApp in the share window? Use the other button: it downloads the PDF, copies the message' + (g ? ' and opens the group' : '') + '.</p>';
+  } else {
+    b.push(g ? linkBtn(g, 'sendGroup', 'Copy and open group', 'pri') : '<button class="btn pri" type="button" data-a="sendCopy">Copy message</button>');
+    if (!g) b.push(linkBtn(waPick(msg), 'sendPick', 'Open WhatsApp', ''));
+    st = g ? ['Click Copy and open group' + pre + '.', 'Click the message box in the group and press Ctrl+V.', 'Press Enter to send.']
+      : ['Click Copy message.', 'Open the group of ' + nm + ' in WhatsApp, click the message box and press Ctrl+V.', 'Press Enter to send.'];
+  }
+  if (!g) extra += '<p class="meta">Save the group link in the details of ' + esc(nm) + ' and this opens their group in one click.</p>';
+  sheet('Send on WhatsApp', '<p class="meta">' + (g ? 'For the WhatsApp group of ' + esc(nm) + '.' : 'No group link is saved for ' + esc(nm) + '.') + '</p>' +
+    '<p class="msgbox" id="send_msg">' + esc(msg) + '</p><ol class="steps">' + st.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
+    '<div class="acts">' + b.join('') + '</div><p class="meta" id="send_note" hidden></p>' + extra);
+  if (p) pdfData(p).then(function (d) {
+    if (SEND !== my) return; my.pdf = d;
+    var x = $('#send_pdf'); if (x) { x.disabled = false; x.textContent = CANSHARE ? 'Share invoice PDF' : 'Share PDF to WhatsApp'; }
+    var y = $('#send_all'); if (y) { y.disabled = false; y.classList.remove('wait'); y.textContent = g ? 'Download PDF, copy message, open group' : 'Download PDF and copy message'; }
+  }, function () { if (SEND !== my) return; ['#send_pdf', '#send_all'].forEach(function (q) { var x = $(q); if (x) x.textContent = 'PDF could not be made'; }); });
 }
 function sendMsgFor(c, t, ref) {
   var p = null, msg = '', rec = null, kk;
@@ -728,10 +748,14 @@ function sendDone() {
   if (s.rec.k === 'pay' && c.prm !== t) put('clients', Object.assign({}, c, { prm: t }));
   if (s.rec.k === 'doc') s.rec.keys.forEach(function (key) { var pm = {}; pm[c.id] = t; putMarks(key, pm, undefined, 'r'); });
 }
+function copyForGroup(text, okMsg) {
+  var no = function () { sendNote('Copying was blocked here. Select the message above, copy it, then paste it in the group.'); };
+  try { navigator.clipboard.writeText(text).then(function () { sendNote(okMsg); }, no); } catch (e) { no(); }
+}
 function sendNote(t) { var n = $('#send_note'); if (n) { n.textContent = t; n.hidden = false; } }
 function shareFail(e) { if (e && e.name === 'AbortError') return; sendNote('The share menu did not open here. Use ' + (SEND && SEND.c.grp ? 'Copy and open group' : 'Open WhatsApp') + ' instead.'); }
 function pdfName(p) { var c = client(p.cid); return ('Invoice ' + (p.no || '') + ' ' + (c ? c.name : p.cname || '')).replace(/[^A-Za-z0-9 _-]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Invoice'; }
-function pdfFile(p) { return loadScript(PDFLIB).then(function () { return buildPdf(p); }).then(function (bytes) { return new File([bytes], pdfName(p) + '.pdf', { type: 'application/pdf' }); }); }
+function pdfData(p) { return loadScript(PDFLIB).then(function () { return buildPdf(p); }).then(function (bytes) { var name = pdfName(p) + '.pdf'; return { bytes: bytes, name: name, file: typeof File === 'function' ? new File([bytes], name, { type: 'application/pdf' }) : null }; }); }
 
 /* ---------- Today's reminders: who to remind, with the message ready ---------- */
 var LEAD = { M: 5, Q: 10, Y: 21 };
@@ -1460,18 +1484,20 @@ var A = {
     try { navigator.share({ text: s.msg }).then(function () { sendDone(); closeSheet(); toast(s.rec ? 'Shared. Reminder noted for today.' : 'Shared.'); }, shareFail); } catch (e) { shareFail(e); }
   },
   sendPdf: function () {
-    var s = SEND; if (!s || !s.file) return;
-    var data = { files: [s.file], text: s.msg };
+    var s = SEND; if (!s || !s.pdf || !s.pdf.file) return;
+    var data = { files: [s.pdf.file], text: s.msg };
     try {
-      if (navigator.canShare && !navigator.canShare(data)) data = { files: [s.file] };
+      if (navigator.canShare && !navigator.canShare(data)) data = { files: [s.pdf.file] };
       if (navigator.canShare && !navigator.canShare(data)) { sendNote('This phone cannot share PDF files. Download the PDF and attach it in the group.'); return; }
       navigator.share(data).then(function () { sendDone(); closeSheet(); toast('Invoice shared.'); }, shareFail);
     } catch (e) { shareFail(e); }
   },
-  sendGroup: function () {
-    var s = SEND; if (!s) return; sendDone();
-    var ok = function () { sendNote('Message copied. In the group, press and hold the message box, tap Paste, then Send.'); }, no = function () { sendNote('Copying was blocked here. Press and hold the message above to copy it, then paste it in the group.'); };
-    try { navigator.clipboard.writeText(s.msg).then(ok, no); } catch (e) { no(); }
+  sendGroup: function () { var s = SEND; if (!s) return; sendDone(); copyForGroup(s.msg, TOUCH ? 'Message copied. In the group, press and hold the message box, tap Paste, then Send.' : 'Message copied. In the group, click the message box, press Ctrl+V, then Enter.'); },
+  sendCopy: function () { var s = SEND; if (!s) return; sendDone(); copyForGroup(s.msg, 'Message copied. Open the group, click the message box, press Ctrl+V, then Enter.'); },
+  sendAll: function (id, el, e) {
+    var s = SEND; if (!s || !s.pdf) { if (e) e.preventDefault(); return; }
+    copyForGroup(s.msg, 'PDF downloading and message copied. Drag the PDF into the chat, press Ctrl+V for the message, then Enter.');
+    saveFile(s.pdf.name, s.pdf.bytes, 'application/pdf'); sendDone();
   },
   sendPick: function () { sendDone(); sendNote('WhatsApp opened with the message typed. Choose the group, then tap Send.'); },
   copy: function (id) { var done = function () { toast('Number copied'); }; try { navigator.clipboard.writeText(id).then(done, function () { toast('Copy is blocked here. Press and hold the number to copy it.'); }); } catch (e) { toast('Copy is blocked here. Press and hold the number to copy it.'); } },
