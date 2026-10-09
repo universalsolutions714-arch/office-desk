@@ -1,0 +1,1786 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Office Desk</title>
+<style>
+/* Layout: one 760px column; sticky section tabs; every add/edit form opens in a bottom sheet so lists never jump. */
+:root{
+  --bg:#f2f5f1; --card:#ffffff; --ink:#14231f; --mut:#5b6b66; --line:#d5ddd8; --soft:#e7eee9;
+  --ac:#1f6f54; --acink:#ffffff; --warn:#985d0a; --bad:#b3402f; --shade:rgba(8,18,14,.48); --shadow:rgba(8,18,14,.22);
+  --paper:#ffffff; --paperink:#1b1f1d; --paperline:#c9d1cc; --papermut:#5d6662;
+  --serif:Georgia,"Times New Roman",serif; --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1815;--card:#17231f;--ink:#e6efeb;--mut:#97a8a2;--line:#2c3c36;--soft:#1f2e29;--ac:#55b891;--acink:#06140e;--warn:#e3a650;--bad:#ef8a76;--shade:rgba(0,0,0,.62);--shadow:rgba(0,0,0,.5);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1815;--card:#17231f;--ink:#e6efeb;--mut:#97a8a2;--line:#2c3c36;--soft:#1f2e29;--ac:#55b891;--acink:#06140e;--warn:#e3a650;--bad:#ef8a76;--shade:rgba(0,0,0,.62);--shadow:rgba(0,0,0,.5);color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+table{font-size:inherit;color:inherit;line-height:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);-webkit-text-size-adjust:100%}
+body.lock{overflow:hidden}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px}
+header.wrap{padding-block:18px 8px}
+.hrow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.hbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex:none;max-width:60%}
+.hbtns .btn{white-space:nowrap}
+.auth{max-width:440px;margin:12px auto}
+.auth h2{margin-top:0}
+h1{font:600 24px/1.2 var(--serif);margin:0;text-wrap:balance}
+.sub{margin:2px 0 0;color:var(--mut);font-size:13px;overflow-wrap:anywhere}
+#sync{margin:6px 0 0;font-size:13px;color:var(--ac);display:flex;align-items:center;gap:7px}
+#sync::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+#sync.warn{color:var(--warn)} #sync.bad{color:var(--bad)}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:6px;overflow-x:auto;padding-block:10px;scrollbar-width:none}
+nav .wrap::-webkit-scrollbar{display:none}
+nav button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 14px;border-radius:999px;font:inherit;font-size:14px;cursor:pointer}
+nav button[aria-current="page"]{background:var(--ac);color:var(--acink);border-color:var(--ac)}
+main .wrap{padding-block:14px 56px}
+h2{font:600 17px/1.3 var(--serif);margin:22px 0 8px;text-wrap:balance}
+h2 .meta{font:13px var(--sans);font-weight:400}
+h3{font:600 16px/1.3 var(--serif);margin:0}
+h4{font-size:13px;color:var(--mut);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.card.warnb{border-color:var(--warn)}
+.card.badb{border-color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media(min-width:620px){.stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.stat{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--ac);border-radius:6px;padding:10px 12px;min-width:0}
+.stat b{display:block;font:600 21px/1.25 var(--serif);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stat span{color:var(--mut);font-size:13px}
+.stat.bad{border-left-color:var(--bad)} .stat.warn{border-left-color:var(--warn)}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.grow{flex:1;min-width:0;overflow-wrap:anywhere}
+.amt{text-align:right;font-variant-numeric:tabular-nums;flex:none;max-width:48%}
+.meta{color:var(--mut);font-size:13px}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;font:inherit;font-size:14px;line-height:1.2;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-height:36px;cursor:pointer}
+.btn.pri{background:var(--ac);color:var(--acink);border-color:var(--ac)}
+.btn.del{color:var(--bad)}
+.btn.sm{font-size:13px;padding:5px 10px;min-height:30px}
+.btn:disabled{opacity:.55;cursor:default}
+.lnk{all:unset;cursor:pointer;color:inherit;font-weight:600;overflow-wrap:anywhere}
+.lnk:hover{text-decoration:underline}
+.lnk:focus-visible{outline:2px solid var(--ac);outline-offset:2px;border-radius:2px}
+.tag{display:inline-block;font-size:12px;line-height:18px;border:1px solid currentColor;border-radius:4px;padding:0 6px;white-space:nowrap}
+.bad{color:var(--bad)} .warn{color:var(--warn)} .ok{color:var(--ac)}
+.empty{color:var(--mut);border:1px dashed var(--line);border-radius:10px;padding:16px;text-align:center}
+.note{background:var(--card);border:1px solid var(--warn);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.note .acts{margin-top:8px}
+.tbar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.tbar input{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.chip{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ac);color:var(--acink);border-color:var(--ac)}
+input,select,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-width:0}
+textarea{resize:vertical}
+select.inline{width:auto;font-size:14px;padding:6px 8px;min-height:36px}
+input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.bar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--ac)}
+.aging{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.aging div{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 9px;font-size:12px;color:var(--mut);white-space:nowrap}
+.aging b{color:var(--ink);font-size:13px;font-variant-numeric:tabular-nums;margin-left:4px}
+.aging b.bad{color:var(--bad)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.pnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0}
+.pnav b{text-align:center;flex:1}
+.big{font:600 20px var(--serif)}
+.dhead{margin:4px 0 8px}
+.dhead h2{margin:0 0 2px;font-size:20px}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;font-size:14px;margin:0}
+.kv dt{color:var(--mut)} .kv dd{margin:0;overflow-wrap:anywhere}
+.more{display:block;width:100%;margin-top:6px}
+.sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet[hidden]{display:none}
+.sh-back{position:absolute;inset:0;background:var(--shade)}
+.sh-box{position:relative;background:var(--card);color:var(--ink);width:100%;max-width:560px;max-height:92vh;max-height:92dvh;display:flex;flex-direction:column;border-radius:14px 14px 0 0;box-shadow:0 -8px 30px var(--shadow);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(min-width:640px){.sheet{align-items:center}.sh-box{border-radius:14px;max-height:86vh}}
+.sh-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+.sh-head h3{font-size:18px}
+.sh-body{overflow:auto;padding:12px 16px 20px;-webkit-overflow-scrolling:touch}
+.x{font:inherit;font-size:22px;line-height:1;background:none;border:0;color:var(--mut);cursor:pointer;padding:4px 8px}
+.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;min-width:0}
+.fld>span{font-size:13px;color:var(--mut);font-weight:600}
+.fld small{color:var(--mut);font-size:12px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px}
+@media(max-width:380px){.two{grid-template-columns:minmax(0,1fr)}}
+.ferr{color:var(--bad);font-size:14px;margin:4px 0 8px;min-height:0}
+.ferr:empty{display:none}
+.sacts{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-top:6px}
+.sum{background:var(--soft);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:14px;font-variant-numeric:tabular-nums}
+.calc{background:var(--soft);border-radius:8px;padding:8px 12px;margin:2px 0 10px;font-size:14px;font-variant-numeric:tabular-nums}
+.calc div{display:flex;justify-content:space-between;gap:8px}
+.calc .t{font-weight:700;border-top:1px solid var(--line);margin-top:4px;padding-top:4px}
+.cklist{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px 10px;margin-bottom:8px}
+.ck{display:flex;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.ck:first-child{border-top:0}
+.ck input{width:20px;height:20px;flex:none;accent-color:var(--ac)}
+#toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:40;max-width:calc(100% - 32px);box-shadow:0 6px 20px var(--shadow)}
+.qr{background:#fff;padding:6px;border-radius:4px;display:inline-block;line-height:0}
+.inv{background:var(--paper);color:var(--paperink);border:1px solid var(--paperline);border-radius:6px;padding:18px;font-size:13px;line-height:1.45;margin-top:10px}
+.inv .im{color:var(--papermut)}
+.inv-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.inv-firm{font:600 18px/1.25 var(--serif)}
+.inv-title{font-weight:700;letter-spacing:.06em;font-size:13px}
+.inv hr{border:0;border-top:1px solid var(--paperline);margin:12px 0}
+.inv-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.inv-tw{overflow-x:auto;margin-top:12px}
+.inv table{width:100%;border-collapse:collapse;min-width:280px;font-variant-numeric:tabular-nums}
+.inv th,.inv td{text-align:left;padding:6px;border-bottom:1px solid var(--paperline);vertical-align:top}
+.inv th{font-size:12px;color:var(--papermut)}
+.inv .r{text-align:right}
+.inv-tot{margin-left:auto;max-width:320px;margin-top:8px;font-variant-numeric:tabular-nums}
+.inv-tot div{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+.inv-tot .t{font-weight:700;border-top:1px solid var(--paperline);padding-top:4px;margin-top:2px}
+.inv-pay{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px}
+.inv-sign{text-align:right;margin-top:18px}
+@media (prefers-reduced-motion:no-preference){.sh-box{animation:up .18s ease-out}@keyframes up{from{transform:translateY(28px)}to{transform:none}}}
+</style>
+
+<header class="wrap">
+  <div class="hrow">
+    <div><h1>Office Desk</h1><p class="sub" id="firm">Clients, payments, work and staff in one place</p></div>
+    <div class="hbtns"><button class="btn sm pri" id="instb" data-a="install" hidden>Install app</button><button class="btn sm" id="setb" data-a="settings" hidden>Settings</button><button class="btn sm" id="outb" data-a="signout" hidden>Sign out</button></div>
+  </div>
+  <p id="sync" class="warn">Loading…</p>
+</header>
+<nav aria-label="Sections"><div class="wrap" id="nav"></div></nav>
+<main id="main"><div class="wrap"><div id="tool"></div><div id="list"></div></div></main>
+<div id="sheet" class="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="shT">
+  <div class="sh-back" data-a="closeSheet"></div>
+  <div class="sh-box"><div class="sh-head"><h3 id="shT"></h3><button class="x" type="button" data-a="closeSheet" aria-label="Close">×</button></div><div class="sh-body" id="shB"></div></div>
+</div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function () {
+'use strict';
+/* Firebase settings for the hosted phone app. Left null inside Claude, where Claude's own sync is used. */
+var FBCFG = {"apiKey": "AIzaSyCF7Jyt8IXuAvtrkNVcKv_PQP7QVlc62Yc", "authDomain": "office-desk-c04ec.firebaseapp.com", "projectId": "office-desk-c04ec", "storageBucket": "office-desk-c04ec.firebasestorage.app", "messagingSenderId": "563966534066", "appId": "1:563966534066:web:08437ee33329afcb02c4ab"};
+
+/* ================= helpers ================= */
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function uid() { var a = new Uint8Array(10), s = '', i; try { crypto.getRandomValues(a); } catch (e) { for (i = 0; i < 10; i++) a[i] = Math.random() * 256 | 0; } for (i = 0; i < 10; i++) s += (a[i] % 36).toString(36); return s; }
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+function str(v, max) { return v == null ? '' : String(v).trim().slice(0, max || 500); }
+function val(id) { var e = document.getElementById(id); return e ? String(e.value).trim() : ''; }
+function plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); }
+function sum(a, f) { var t = 0; a.forEach(function (x) { t += f(x); }); return r2(t); }
+function byName(a, b) { return String(a.name || a.party || '').localeCompare(String(b.name || b.party || ''), 'en', { sensitivity: 'base' }); }
+function has(s, q) { return String(s || '').toLowerCase().indexOf(q) > -1; }
+
+/* dates: always local calendar dates as YYYY-MM-DD (fixes the after-midnight India bug) */
+var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function ymd(y, m, d) { return y + '-' + pad(m) + '-' + pad(d); }
+function today() { var n = new Date(); return ymd(n.getFullYear(), n.getMonth() + 1, n.getDate()); }
+function dn(s) { var p = s.split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 864e5; }
+function okDate(s) { if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false; var p = s.split('-'), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); return d.getUTCMonth() === +p[1] - 1 && d.getUTCDate() === +p[2]; }
+function daysBetween(a, b) { return Math.round(dn(b) - dn(a)); }
+function addDays(s, n) { var d = new Date((dn(s) + n) * 864e5); return ymd(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()); }
+function lastDay(y, m) { return new Date(Date.UTC(y, m, 0)).getUTCDate(); }
+function clampDay(y, m, d) { return Math.min(d, lastDay(y, m)); }
+function fmt(s, yr) { if (!okDate(s)) return 'No date'; var p = s.split('-'), t = +p[2] + ' ' + MON[+p[1] - 1]; if (yr || p[0] !== today().slice(0, 4)) t += ' ' + p[0]; return t; }
+function fyStart(s) { s = okDate(s) ? s : today(); var y = +s.slice(0, 4), m = +s.slice(5, 7); return m >= 4 ? y : y - 1; }
+function fyLabel(st) { return st + '-' + pad((st + 1) % 100); }
+function fyShort(st) { return pad(st % 100) + '-' + pad((st + 1) % 100); }
+function ord(n) { var s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+function monthKey(s) { return s ? s.slice(0, 7) : ''; }
+
+/* money: rupees with paise, Indian grouping */
+function r2(x) { x = Number(x); if (!isFinite(x) || Math.abs(x) < 1e-7) return 0; if (Math.abs(x) >= 1e14) return Math.round(x); var s = Math.round(Number(Math.abs(x) + 'e2')); return (x < 0 ? -1 : 1) * Number(s + 'e-2'); }
+function num(v) { if (typeof v === 'number') return v; var s = String(v == null ? '' : v).replace(/[₹,\s]/g, '').replace(/^rs\.?/i, ''); return /^\d*\.?\d+$/.test(s) ? parseFloat(s) : NaN; }
+function inr(n) { n = r2(n); var neg = n < 0; n = Math.abs(n); return (neg ? '-' : '') + '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+function money2(n) { return r2(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+var ONES = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+var TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+function w2(n) { return n < 20 ? ONES[n] : TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : ''); }
+function w3(n) { var h = Math.floor(n / 100), r = n % 100; return (h ? ONES[h] + ' Hundred' + (r ? ' ' : '') : '') + (r ? w2(r) : ''); }
+function wordsInt(n) { if (n === 0) return 'Zero'; var out = [], cr = Math.floor(n / 1e7); n %= 1e7; if (cr) out.push(wordsInt(cr) + ' Crore'); var l = Math.floor(n / 1e5); n %= 1e5; if (l) out.push(w2(l) + ' Lakh'); var t = Math.floor(n / 1e3); n %= 1e3; if (t) out.push(w2(t) + ' Thousand'); if (n) out.push(w3(n)); return out.join(' '); }
+function amountWords(x) { x = r2(x); var r = Math.floor(x), p = Math.round((x - r) * 100); return 'Rupees ' + wordsInt(r) + (p ? ' and ' + w2(p) + ' Paise' : '') + ' Only'; }
+
+/* GST / PAN / phone */
+var GST_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/, PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+function gstOk(g) { if (!GST_RE.test(g)) return false; var cs = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', s = 0; for (var i = 0; i < 14; i++) { var p = cs.indexOf(g[i]) * (i % 2 ? 2 : 1); s += Math.floor(p / 36) + p % 36; } return cs[(36 - s % 36) % 36] === g[14]; }
+var STATES = { '01': 'Jammu & Kashmir', '02': 'Himachal Pradesh', '03': 'Punjab', '04': 'Chandigarh', '05': 'Uttarakhand', '06': 'Haryana', '07': 'Delhi', '08': 'Rajasthan', '09': 'Uttar Pradesh', '10': 'Bihar', '11': 'Sikkim', '12': 'Arunachal Pradesh', '13': 'Nagaland', '14': 'Manipur', '15': 'Mizoram', '16': 'Tripura', '17': 'Meghalaya', '18': 'Assam', '19': 'West Bengal', '20': 'Jharkhand', '21': 'Odisha', '22': 'Chhattisgarh', '23': 'Madhya Pradesh', '24': 'Gujarat', '25': 'Daman & Diu', '26': 'Dadra & Nagar Haveli and Daman & Diu', '27': 'Maharashtra', '29': 'Karnataka', '30': 'Goa', '31': 'Lakshadweep', '32': 'Kerala', '33': 'Tamil Nadu', '34': 'Puducherry', '35': 'Andaman & Nicobar Islands', '36': 'Telangana', '37': 'Andhra Pradesh', '38': 'Ladakh', '97': 'Other Territory' };
+function stateName(code) { return STATES[code] ? STATES[code] + ' (' + code + ')' : ''; }
+function phoneOk(p) { var d = String(p || '').replace(/\D/g, ''); return d.length >= 10 && d.length <= 15; }
+function waNum(p) {
+  var raw = String(p || '').trim(), d = raw.replace(/\D/g, '');
+  if (d.length === 11 && d[0] === '0') d = d.slice(1);
+  if (d.length === 14 && d.slice(0, 4) === '0091') d = d.slice(2);
+  if (d.length === 13 && d.slice(0, 3) === '091') d = d.slice(1);
+  if (d.length === 10) d = '91' + d;
+  if (/^91[6-9]\d{9}$/.test(d)) return d;
+  return raw[0] === '+' && d.length >= 11 && d.length <= 15 && d.slice(0, 2) !== '91' ? d : '';
+}
+function wa(p, msg) { var n = waNum(p); return n ? 'https://wa.me/' + n + (msg ? '?text=' + encodeURIComponent(msg) : '') : ''; }
+function telHref(p) { var d = String(p || '').replace(/[^\d+]/g, ''); return d ? 'tel:' + d : ''; }
+
+/* ================= constants ================= */
+var MODES = ['UPI', 'Bank transfer', 'Cash', 'Cheque', 'Other'];
+var PRESETS = [
+  { id: 'c1', n: 'GSTR-1 (monthly)', f: 'M', d: 11 },
+  { id: 'c2', n: 'GSTR-3B (monthly)', f: 'M', d: 20 },
+  { id: 'c3', n: 'TDS / TCS payment', f: 'M', d: 7, x: { 3: 30 } },
+  { id: 'c4', n: 'PF / ESI', f: 'M', d: 15 },
+  { id: 'c5', n: 'GSTR-1 (QRMP)', f: 'Q', d: 13, o: 1 },
+  { id: 'c6', n: 'GSTR-3B (QRMP)', f: 'Q', d: 22, o: 1, hint: '24th in some states' },
+  { id: 'c7', n: 'TDS return (24Q / 26Q)', f: 'Q', d: 31, o: 1, q4o: 2 },
+  { id: 'c8', n: 'Advance tax', f: 'Q', d: 15, o: 0 },
+  { id: 'c9', n: 'CMP-08 (composition)', f: 'Q', d: 18, o: 1 },
+  { id: 'c10', n: 'ITR-1 / ITR-2', f: 'Y', m: 7, d: 31 },
+  { id: 'c11', n: 'ITR-3 / ITR-4 (non-audit)', f: 'Y', m: 8, d: 31 },
+  { id: 'c12', n: 'Tax audit report', f: 'Y', m: 9, d: 30 },
+  { id: 'c13', n: 'ITR (audit cases)', f: 'Y', m: 10, d: 31 },
+  { id: 'c14', n: 'GSTR-9 (annual)', f: 'Y', m: 12, d: 31 },
+  { id: 'c15', n: 'AOC-4 (ROC)', f: 'Y', m: 10, d: 30, hint: '30 days after the AGM' },
+  { id: 'c16', n: 'MGT-7 / 7A (ROC)', f: 'Y', m: 11, d: 29, hint: '60 days after the AGM' }
+];
+var PRESET = {}; PRESETS.forEach(function (p) { PRESET[p.id] = p; });
+var TYPES = ['clients', 'staff', 'tasks', 'pay', 'vp', 'comps'];
+var ID_RE = /^[A-Za-z0-9_~:@+-]{1,80}$/;
+var LKEY = 'officedesk';
+
+/* ================= records ================= */
+function normPay(r) { if (!r) return null; var a = r2(num(r.amt)), t = r2(num(r.tds)); if (!(a > 0)) a = 0; if (!(t > 0)) t = 0; if (a + t <= 0) return null; return { id: ID_RE.test(String(r.id || '')) ? String(r.id) : uid(), amt: a, tds: t, date: okDate(r.date) ? r.date : '', mode: str(r.mode, 20), ref: str(r.ref, 60) }; }
+var NORM = {
+  clients: function (o) {
+    var g = str(o.gstin, 15).toUpperCase().replace(/\s/g, ''), pan = str(o.pan, 10).toUpperCase(), st = str(o.state, 2);
+    if (!pan && GST_RE.test(g)) pan = g.slice(2, 12);
+    if (GST_RE.test(g)) st = g.slice(0, 2);
+    return { id: o.id, name: str(o.name, 120) || 'Unnamed client', phone: str(o.phone, 30), email: str(o.email, 120), gstin: g, pan: pan, state: STATES[st] ? st : '', addr: str(o.addr, 400), notes: str(o.notes, 1000), ct: str(o.ct, 30) };
+  },
+  staff: function (o) { return { id: o.id, name: str(o.name, 80) || 'Unnamed', role: str(o.role, 80), phone: str(o.phone, 30) }; },
+  tasks: function (o) {
+    var st = ['todo', 'doing', 'done'].indexOf(o.st) > -1 ? o.st : 'todo';
+    return { id: o.id, title: str(o.title, 200) || 'Untitled work', cid: str(o.cid, 80), cname: str(o.cname, 120), sid: str(o.sid, 80), due: okDate(o.due) ? o.due : '', st: st, done: okDate(o.done) ? o.done : '', note: str(o.note, 1000), ct: str(o.ct, 30) };
+  },
+  pay: function (o) {
+    var legacy = o.tx == null, old = r2(num(o.amt)); if (!(old >= 0)) old = 0;
+    var tx = legacy ? old : r2(num(o.tx)); if (!(tx >= 0)) tx = 0;
+    var cg = legacy ? 0 : r2(num(o.cgst)) || 0, sg = legacy ? 0 : r2(num(o.sgst)) || 0, ig = legacy ? 0 : r2(num(o.igst)) || 0;
+    var rcv = Array.isArray(o.rcv) ? o.rcv.map(normPay).filter(Boolean) : [];
+    var amt = legacy ? old : r2(tx + cg + sg + ig);
+    if (!Array.isArray(o.rcv) && o.paid === true && amt > 0) rcv = [{ id: 'legacy', amt: amt, tds: 0, date: '', mode: '', ref: '' }];
+    return { id: o.id, cid: str(o.cid, 80), cname: str(o.cname, 120), no: str(o.no != null ? o.no : o.inv, 30), date: okDate(o.date) ? o.date : '', due: okDate(o.due) ? o.due : '', desc: str(o.desc, 300), sac: str(o.sac, 8), tx: tx, rate: legacy ? 0 : ([0, 5, 12, 18, 28, 40].indexOf(+o.rate) > -1 ? +o.rate : 0), cgst: cg, sgst: sg, igst: ig, amt: amt, rcv: rcv, note: str(o.note, 500), ct: str(o.ct, 30) };
+  },
+  vp: function (o) {
+    var amt = r2(num(o.amt)); if (!(amt >= 0)) amt = 0;
+    var pays = Array.isArray(o.pays) ? o.pays.map(normPay).filter(Boolean) : [];
+    if (!Array.isArray(o.pays) && o.paid === true && amt > 0) pays = [{ id: 'legacy', amt: amt, tds: 0, date: okDate(o.pdate) ? o.pdate : '', mode: '', ref: '' }];
+    return { id: o.id, party: str(o.party, 120) || 'Unnamed party', bill: str(o.bill, 40), date: okDate(o.date) ? o.date : '', due: okDate(o.due) ? o.due : '', amt: amt, rem: str(o.rem, 500), pays: pays, ct: str(o.ct, 30) };
+  },
+  comps: function (o) {
+    var f = ['M', 'Q', 'Y'].indexOf(o.f) > -1 ? o.f : 'M', pre = PRESET[o.id];
+    var d = Math.min(31, Math.max(1, parseInt(o.d, 10) || 1)), m = Math.min(12, Math.max(1, parseInt(o.m, 10) || 7));
+    var cl = Array.isArray(o.cl) ? o.cl.filter(function (x) { return typeof x === 'string' && ID_RE.test(x); }) : [];
+    var since = {}; if (o.since && typeof o.since === 'object') Object.keys(o.since).forEach(function (k) { if (okDate(o.since[k])) since[k] = o.since[k]; });
+    var x = {}, src = o.x && typeof o.x === 'object' ? o.x : (o.f == null && pre && pre.x ? pre.x : {});
+    Object.keys(src).forEach(function (k) { var v = parseInt(src[k], 10); if (+k >= 1 && +k <= 12 && v >= 1 && v <= 31) x[+k] = v; });
+    var q4 = o.q4o != null && o.q4o !== '' && !isNaN(+o.q4o) ? Math.min(3, Math.max(0, +o.q4o)) : null;
+    return { id: o.id, n: str(o.n, 80) || 'Compliance', f: f, d: d, m: m, o: (o.o === 0 || o.o === '0') ? 0 : 1, q4o: q4, x: x, cl: cl, since: since, ct: okDate(o.ct) ? o.ct : today() };
+  }
+};
+function normMark(o) { var r = { f: {} }; if (o && okDate(o.due)) r.due = o.due; if (o && o.f && typeof o.f === 'object') Object.keys(o.f).forEach(function (k) { if (okDate(o.f[k])) r.f[k] = o.f[k]; }); return r; }
+function normSet(o) {
+  o = o || {}; var g = str(o.gstin, 15).toUpperCase(), st = str(o.state, 2);
+  if (GST_RE.test(g)) st = g.slice(0, 2);
+  return { name: str(o.name, 120), addr: str(o.addr, 400), gstin: g, pan: str(o.pan, 10).toUpperCase() || (GST_RE.test(g) ? g.slice(2, 12) : ''), state: STATES[st] ? st : '', phone: str(o.phone, 30), email: str(o.email, 120), bank: str(o.bank, 120), acname: str(o.acname, 120), acno: str(o.acno, 30), ifsc: str(o.ifsc, 11).toUpperCase(), upi: str(o.upi, 80), prefix: (str(o.prefix, 6).toUpperCase().replace(/[^A-Z0-9-]/g, '')) || 'INV', sac: str(o.sac, 8).replace(/\D/g, ''), rate: [0, 5, 18].indexOf(+o.rate) > -1 ? +o.rate : 18, desc: str(o.desc, 120) || 'Professional fees', terms: str(o.terms, 500) };
+}
+function blank() { return { clients: [], staff: [], tasks: [], pay: [], vp: [], comps: [], marks: {}, set: normSet({}) }; }
+/* accepts the old Office Desk format (v1) and this one (v2); fixes ids that the sync store would refuse */
+function migrate(o) {
+  var out = blank(), map = {};
+  if (!o || typeof o !== 'object') return out;
+  TYPES.forEach(function (t) {
+    var seen = {};
+    (Array.isArray(o[t]) ? o[t] : []).forEach(function (r) {
+      if (!r || typeof r !== 'object') return;
+      var id = String(r.id == null ? '' : r.id);
+      if (!ID_RE.test(id) || seen[id]) { var nid = uid(); map[t + ':' + id] = nid; id = nid; }
+      seen[id] = 1;
+      out[t].push(NORM[t](Object.assign({}, r, { id: id })));
+    });
+  });
+  function fix(t, id) { return map[t + ':' + id] || id; }
+  out.tasks.forEach(function (x) { x.cid = fix('clients', x.cid); x.sid = fix('staff', x.sid); });
+  out.pay.forEach(function (x) { x.cid = fix('clients', x.cid); });
+  out.comps.forEach(function (k) { k.cl = k.cl.map(function (c) { return fix('clients', c); }); });
+  if (o.marks && typeof o.marks === 'object') Object.keys(o.marks).forEach(function (k) { if (ID_RE.test(k)) out.marks[k] = normMark(o.marks[k]); });
+  out.set = normSet(o.set || { name: o.firm });
+  return out;
+}
+function countRecords(m) { return m.clients.length + m.staff.length + m.tasks.length + m.pay.length + m.vp.length + m.comps.filter(function (k) { return k.cl.length; }).length; }
+
+/* ================= state + storage ================= */
+var S = blank(), MODE = 'boot', DB = null, DL = null, ROLE = 'admin', LOADED = {}, PEND = 0, SYNCERR = '', LOCALONLY = null, RT = null;
+var PATH = { clients: 'clients', staff: 'staff', tasks: 'tasks', pay: 'adm/data/pay', vp: 'adm/data/vp', comps: 'adm/data/comps', marks: 'adm/data/marks' }, SETPATH = 'adm/settings';
+var MARKS_REMOTE = {}, UNSUB = {};
+
+function loadLocal() {
+  var raw = lsGet(LKEY);
+  if (raw == null) { var b = blank(); b.comps = PRESETS.slice(0, 4).map(function (p) { return NORM.comps(Object.assign({}, p, { cl: [], ct: today() })); }); return { data: b, fresh: true }; }
+  try { return { data: migrate(JSON.parse(raw)) }; } catch (e) { lsSet(LKEY + '_unreadable', raw); return { data: blank(), broken: true }; }
+}
+function saveLocal() {
+  var ok = lsSet(LKEY, JSON.stringify({ app: 'office-desk', ver: 2, clients: S.clients, staff: S.staff, tasks: S.tasks, pay: S.pay, vp: S.vp, comps: S.comps, marks: S.marks, set: S.set }));
+  if (!ok) toast('This browser did not save the change. Download a backup now.');
+}
+function upsert(t, rec) { var a = S[t].slice(), i = -1; for (var k = 0; k < a.length; k++) if (a[k].id === rec.id) { i = k; break; } if (i > -1) a[i] = rec; else a.push(rec); S[t] = a; }
+/* Synced mode: what the server last sent (BASE) plus our own changes still on their way (OVER).
+   Screens always show BASE + OVER, so a new entry never blinks out while it is being saved. */
+var BASE = {}, OVER = {}, BASEMARKS = {}, OVERMARKS = {}, BASESET = null, OVERSET = null;
+function view(t) {
+  var arr = (BASE[t] || []).slice(), ov = OVER[t], ids = ov ? Object.keys(ov) : [];
+  if (!ids.length) return arr;
+  var pos = {}; arr.forEach(function (x, i) { pos[x.id] = i; });
+  ids.forEach(function (id) { var r = ov[id]; if (r.gone) { if (pos[id] != null) arr[pos[id]] = null; } else if (pos[id] != null) arr[pos[id]] = r; else arr.push(r); });
+  return arr.filter(Boolean);
+}
+function viewMarks() { var m = {}; Object.keys(BASEMARKS).forEach(function (k) { m[k] = BASEMARKS[k]; }); Object.keys(OVERMARKS).forEach(function (k) { if (OVERMARKS[k].gone) delete m[k]; else m[k] = OVERMARKS[k]; }); return m; }
+function track(t, id, val, p) {
+  var ov = OVER[t] = OVER[t] || {}; ov[id] = val;
+  return p.then(function (ok) { if (ov[id] === val) delete ov[id]; if (!ok) { S[t] = view(t); schedule(); } return ok; });
+}
+function put(t, rec) {
+  rec = NORM[t](rec); upsert(t, rec);
+  if (MODE === 'db') track(t, rec.id, rec, write(PATH[t] + '/' + rec.id, 'set', rec)); else saveLocal();
+  schedule(); return rec;
+}
+function putQuiet(t, rec) { upsert(t, rec); return track(t, rec.id, rec, write(PATH[t] + '/' + rec.id, 'set', rec)); }
+function remove(t, id) {
+  S[t] = S[t].filter(function (x) { return x.id !== id; });
+  if (MODE === 'db') { var tomb = { gone: 1 }; track(t, id, tomb, write(PATH[t] + '/' + id, 'delete')); } else saveLocal();
+  schedule();
+}
+function putSet(o) {
+  var mine = S.set = normSet(o);
+  if (MODE === 'db') { OVERSET = mine; write(SETPATH, 'set', mine).then(function (ok) { if (OVERSET === mine) OVERSET = null; if (!ok) { S.set = OVERSET || BASESET || normSet({}); schedule(); } }); }
+  else saveLocal();
+  schedule();
+}
+function markWrite(key, val, p) { OVERMARKS[key] = val; p.then(function (ok) { if (OVERMARKS[key] === val) delete OVERMARKS[key]; if (!ok) { S.marks = viewMarks(); schedule(); } }); }
+function putMarks(key, patch, due) {
+  var m = S.marks[key] ? { f: Object.assign({}, S.marks[key].f), due: S.marks[key].due } : { f: {} };
+  Object.keys(patch).forEach(function (c) { if (patch[c]) m.f[c] = patch[c]; else delete m.f[c]; });
+  if (due !== undefined) { if (due) m.due = due; else delete m.due; }
+  if (!m.due) delete m.due;
+  var copy = {}; Object.keys(S.marks).forEach(function (k) { copy[k] = S.marks[k]; }); copy[key] = m; S.marks = copy;
+  if (MODE === 'db') {
+    var full = { f: m.f, due: m.due || null }, p;
+    if (MARKS_REMOTE[key]) { var up = {}; if (Object.keys(patch).length) { up.f = {}; Object.keys(patch).forEach(function (c) { up.f[c] = patch[c] || null; }); } if (due !== undefined) up.due = due || null; p = write(PATH.marks + '/' + key, 'update', up, full); }
+    else p = write(PATH.marks + '/' + key, 'set', full);
+    markWrite(key, m, p);
+  } else saveLocal();
+  schedule();
+}
+function removeMark(key) {
+  var copy = {}; Object.keys(S.marks).forEach(function (k) { if (k !== key) copy[k] = S.marks[k]; }); S.marks = copy;
+  if (MODE === 'db') markWrite(key, { gone: 1 }, write(PATH.marks + '/' + key, 'delete'));
+}
+
+/* write queue: one write at a time per document, 4 in flight, retries for temporary errors */
+var CHAIN = {}, ACTIVE = 0, WAITQ = [];
+function slot() { return new Promise(function (r) { if (ACTIVE < 4) { ACTIVE++; r(); } else WAITQ.push(function () { ACTIVE++; r(); }); }); }
+function release() { ACTIVE--; var n = WAITQ.shift(); if (n) n(); }
+function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function attempt(path, op, body, n) {
+  var ref = DB.doc(path), p = op === 'set' ? ref.set(body) : op === 'update' ? ref.update(body) : ref.delete();
+  return p.catch(function (e) {
+    var c = e && e.code;
+    if ((c === 'unavailable' || c === 'resource_exhausted') && n < 4) return wait(700 * Math.pow(2, n) + Math.random() * 500).then(function () { return attempt(path, op, body, n + 1); });
+    throw e;
+  });
+}
+function write(path, op, body, fallbackSet) {
+  if (FBM) return fbWrite(path, op, body, fallbackSet);
+  PEND++; head();
+  var prev = CHAIN[path] || Promise.resolve();
+  var p = prev.then(slot).then(function () {
+    return attempt(path, op, body, 0).then(function () { release(); if (SYNCERR && SYNCERR.indexOf('save') > -1) SYNCERR = ''; return true; }, function (e) {
+      release();
+      if (op === 'update' && fallbackSet && e && e.code === 'invalid_argument' && ROLE === 'admin') return attempt(path, 'set', fallbackSet, 0).then(function () { return true; }, function (e2) { writeFailed(e2); return false; });
+      writeFailed(e); return false;
+    });
+  }).then(function (ok) { PEND--; if (CHAIN[path] === p) delete CHAIN[path]; head(); return ok; });
+  CHAIN[path] = p; return p;
+}
+function writeFailed(e) {
+  var c = e && e.code, msg;
+  if (c === 'invalid_argument') msg = ROLE === 'admin' ? 'One change was not accepted by the server. Reload the page and check it.' : 'You do not have permission to change this. Ask the office owner.';
+  else if (c === 'quota_exceeded') msg = 'Storage is full. Download a backup, then delete old paid invoices and finished work.';
+  else if (c === 'revoked') msg = 'Your access to this page changed. Reload the page.';
+  else msg = 'Could not save a change. Check your internet and make the change again.';
+  SYNCERR = msg; toast(msg); schedule();
+}
+function subscribe() {
+  var list = ROLE === 'admin' ? ['clients', 'staff', 'tasks', 'pay', 'vp', 'comps', 'marks'] : ['clients', 'staff', 'tasks'];
+  list.forEach(function (t) { listen(t, 0); });
+  if (ROLE === 'admin') listenSet(0);
+}
+function listen(t, tries) {
+  if (UNSUB[t]) UNSUB[t]();
+  var map = {};
+  function norm(d) { return NORM[t](Object.assign({}, d.data(), { id: d.id })); }
+  UNSUB[t] = DB.collection(PATH[t]).onSnapshot(function (snap) {
+    if (t === 'marks') { var m = {}, rem = {}; snap.docs.forEach(function (d) { if (!ID_RE.test(d.id)) return; m[d.id] = normMark(d.data()); rem[d.id] = 1; }); BASEMARKS = m; MARKS_REMOTE = rem; S.marks = viewMarks(); }
+    else {
+      /* apply only what changed, so thousands of invoices stay fast */
+      var ch = null; try { ch = typeof snap.docChanges === 'function' ? snap.docChanges() : null; } catch (e) { ch = null; }
+      var inc = Array.isArray(ch);
+      if (inc) ch.forEach(function (c) { if (!ID_RE.test(c.doc.id)) return; if (c.type === 'removed') delete map[c.doc.id]; else map[c.doc.id] = norm(c.doc); });
+      var arr = [];
+      for (var i = 0; i < snap.docs.length; i++) { var d = snap.docs[i]; if (!ID_RE.test(d.id)) continue; var r = inc ? map[d.id] : null; if (!r) { r = norm(d); map[d.id] = r; } arr.push(r); }
+      if (Object.keys(map).length !== arr.length) { map = {}; arr.forEach(function (x) { map[x.id] = x; }); }
+      BASE[t] = arr; S[t] = view(t);
+    }
+    if (!FBM || serverSaid(snap, snap.size)) LOADED[t] = true;
+    schedule();
+  }, function (e) { subFailed(e, function () { listen(t, tries + 1); }, tries); });
+}
+function listenSet(tries) {
+  if (UNSUB.set) UNSUB.set();
+  UNSUB.set = DB.doc(SETPATH).onSnapshot(function (s) { BASESET = normSet(s.exists ? s.data() : {}); S.set = OVERSET || BASESET; if (!FBM || serverSaid(s, s.exists)) LOADED.set = true; schedule(); }, function (e) { subFailed(e, function () { listenSet(tries + 1); }, tries); });
+}
+function subFailed(e, again, tries) {
+  var c = e && e.code;
+  if ((c === 'unavailable' || c === 'resource_exhausted') && tries < 3) { setTimeout(again, 3000 * (tries + 1)); return; }
+  SYNCERR = c === 'revoked' ? 'Your access to this page changed. Reload the page.' : 'Live sync stopped. Reload the page to see the latest data.';
+  head();
+}
+function serverSaid(snap, hasData) { var md = snap && snap.metadata; return !md || !md.fromCache || !!hasData || !navigator.onLine; }
+function allLoaded() { var need = ROLE === 'admin' ? ['clients', 'staff', 'tasks', 'pay', 'vp', 'comps', 'marks', 'set'] : ['clients', 'staff', 'tasks']; return need.every(function (k) { return LOADED[k]; }); }
+function loading(t) { return MODE === 'boot' || (MODE === 'db' && !LOADED[t]); }
+
+/* ================= lookups + calculations ================= */
+var IDX = { c: null, cv: null, s: null, sv: null };
+function cmap() { if (IDX.cv !== S.clients) { IDX.c = {}; S.clients.forEach(function (c) { IDX.c[c.id] = c; }); IDX.cv = S.clients; } return IDX.c; }
+function smap() { if (IDX.sv !== S.staff) { IDX.s = {}; S.staff.forEach(function (c) { IDX.s[c.id] = c; }); IDX.sv = S.staff; } return IDX.s; }
+function client(id) { return cmap()[id] || null; }
+function staffOf(id) { return smap()[id] || null; }
+function find(t, id) { for (var i = 0; i < S[t].length; i++) if (S[t][i].id === id) return S[t][i]; return null; }
+function cn(r) { var c = client(r.cid); return c ? c.name : (r.cname ? r.cname + ' (deleted)' : (r.cid ? 'Deleted client' : 'No client')); }
+function sname(id) { var s = staffOf(id); return s ? s.name : 'Unassigned'; }
+function hasGst() { return GST_RE.test(S.set.gstin); }
+var PI = new WeakMap();
+function pinfo(p) {
+  var t = today(), c = PI.get(p); if (c && c.t === t) return c;
+  var rec = sum(p.rcv, function (r) { return r.amt; }), tds = sum(p.rcv, function (r) { return r.tds; }), bal = r2(p.amt - rec - tds);
+  if (bal < 0) bal = 0;
+  var last = p.rcv.reduce(function (m, r) { return r.date > m ? r.date : m; }, '');
+  var late = bal > 0 && p.due && p.due < t ? daysBetween(p.due, t) : 0;
+  var st = bal <= 0 ? 'paid' : late ? 'over' : (p.due === t ? 'today' : (rec + tds > 0 ? 'part' : 'open'));
+  c = { t: t, rec: rec, tds: tds, bal: bal, late: late, st: st, last: last }; PI.set(p, c); return c;
+}
+function vinfo(x) { var paid = sum(x.pays, function (r) { return r.amt; }), tds = sum(x.pays, function (r) { return r.tds; }), bal = r2(x.amt - paid - tds); if (bal < 0) bal = 0; var t = today(); return { paid: paid, tds: tds, bal: bal, late: bal > 0 && x.due && x.due < t ? daysBetween(x.due, t) : 0 }; }
+function dueMap() { var m = {}; S.pay.forEach(function (p) { var b = pinfo(p).bal; if (b > 0) m[p.cid] = r2((m[p.cid] || 0) + b); }); return m; }
+function payTag(pi) {
+  if (pi.st === 'paid') return '<span class="tag ok">Paid</span>';
+  if (pi.st === 'over') return '<span class="tag bad">Overdue ' + pi.late + 'd</span>';
+  if (pi.st === 'today') return '<span class="tag warn">Due today</span>';
+  if (pi.st === 'part') return '<span class="tag warn">Part paid</span>';
+  return '<span class="tag warn">Pending</span>';
+}
+function gstSplit(tx, rate, c) {
+  var r = { cgst: 0, sgst: 0, igst: 0, inter: false };
+  if (!rate || !hasGst()) return r;
+  var fs = S.set.gstin.slice(0, 2), cs = c && GST_RE.test(c.gstin) ? c.gstin.slice(0, 2) : (c && c.state) || fs;
+  if (cs === fs) { r.cgst = r.sgst = r2(tx * rate / 200); } else { r.igst = r2(tx * rate / 100); r.inter = true; }
+  return r;
+}
+function nextNo(date, exceptId) {
+  var base = (S.set.prefix || 'INV') + '/' + fyShort(fyStart(date)) + '/', B = base.toUpperCase(), mx = 0;
+  S.pay.forEach(function (p) { if (p.id === exceptId) return; var no = p.no.toUpperCase(); if (no.indexOf(B) === 0) { var n = parseInt(no.slice(B.length), 10); if (n > mx) mx = n; } });
+  var s = String(mx + 1); while (s.length < 3) s = '0' + s; return base + s;
+}
+function noTaken(no, date, exceptId) { var k = no.trim().toUpperCase(), fy = fyStart(date); return S.pay.filter(function (p) { return p.id !== exceptId && p.no.trim().toUpperCase() === k && fyStart(p.date || p.due) === fy; })[0] || null; }
+
+/* compliance periods. M key YYYY-MM (return month), Q key YYYY-Qn (FY start year), Y key YYYY (due year) */
+function comp(id) { return find('comps', id); }
+function pShift(k, key, n) {
+  if (k.f === 'M') { var y = +key.slice(0, 4), m = +key.slice(5, 7) + n; while (m > 12) { m -= 12; y++; } while (m < 1) { m += 12; y--; } return y + '-' + pad(m); }
+  if (k.f === 'Q') { var fy = +key.slice(0, 4), q = +key.slice(6) + n; while (q > 4) { q -= 4; fy++; } while (q < 1) { q += 4; fy--; } return fy + '-Q' + q; }
+  return String(+key + n);
+}
+function pDueStd(k, key) {
+  if (k.f === 'M') { var y = +key.slice(0, 4), m = +key.slice(5, 7), dy = m === 12 ? y + 1 : y, dm = m === 12 ? 1 : m + 1; return ymd(dy, dm, clampDay(dy, dm, (k.x && k.x[m]) || k.d)); }
+  if (k.f === 'Q') { var fy = +key.slice(0, 4), q = +key.slice(6), em = [6, 9, 12, 3][q - 1], ey = q === 4 ? fy + 1 : fy, off = (q === 4 && k.q4o != null) ? k.q4o : k.o, mm = em + off, yy = ey; while (mm > 12) { mm -= 12; yy++; } return ymd(yy, mm, clampDay(yy, mm, k.d)); }
+  var Y = +key; return ymd(Y, k.m, clampDay(Y, k.m, k.d));
+}
+function pDue(k, key) { var mk = S.marks[k.id + '_' + key]; return mk && mk.due ? mk.due : pDueStd(k, key); }
+function pLabel(k, key) {
+  if (k.f === 'M') return MON[+key.slice(5, 7) - 1] + ' ' + key.slice(0, 4);
+  if (k.f === 'Q') { var fy = +key.slice(0, 4), q = +key.slice(6), a = [[4, 6], [7, 9], [10, 12], [1, 3]][q - 1]; return MON[a[0] - 1] + '–' + MON[a[1] - 1] + ' ' + (q === 4 ? fy + 1 : fy) + ' (Q' + q + ')'; }
+  var Y = +key, fs = k.m >= 4 ? Y - 1 : Y - 2; return 'FY ' + fs + '-' + pad((fs + 1) % 100);
+}
+function pUpcoming(k, t) {
+  var y = +t.slice(0, 4), m = +t.slice(5, 7), key;
+  if (k.f === 'M') { var mm = m - 3, yy = y; while (mm < 1) { mm += 12; yy--; } key = yy + '-' + pad(mm); }
+  else if (k.f === 'Q') key = ((m >= 4 ? y : y - 1) - 1) + '-Q1';
+  else key = String(y - 1);
+  for (var i = 0; i < 40; i++) { if (pDue(k, key) >= t) return key; key = pShift(k, key, 1); }
+  return key;
+}
+function pState(k, key) {
+  var due = pDue(k, key), mk = S.marks[k.id + '_' + key], f = (mk && mk.f) || {}, req = [], filed = [], pending = [];
+  k.cl.forEach(function (cid) { var c = client(cid); if (!c) return; var s = k.since[cid]; if (s && s > due) return; req.push(c); if (f[cid]) filed.push(c); else pending.push(c); });
+  return { due: due, req: req, filed: filed.sort(byName), pending: pending.sort(byName), f: f };
+}
+function ruleText(k) {
+  if (k.f === 'M') return 'Monthly · ' + ord(k.d) + ' of next month' + (k.x && k.x[3] ? ' (March: ' + ord(k.x[3]) + ' April)' : '');
+  if (k.f === 'Q') { var q4 = k.q4o != null && k.q4o !== k.o ? ' (Jan–Mar: ' + ord(k.d) + ' ' + MON[(2 + k.q4o) % 12] + ')' : ''; return 'Quarterly · ' + ord(k.d) + (k.o ? ' of the month after the quarter' : ' of the last month of the quarter') + q4; }
+  return 'Yearly · ' + ord(k.d) + ' ' + MON[k.m - 1];
+}
+function compEntries() {
+  var t = today(), out = [];
+  S.comps.forEach(function (k) {
+    if (!k.cl.some(function (c) { return client(c); })) return;
+    var up = pUpcoming(k, t), st = pState(k, up);
+    out.push({ k: k, key: up, st: st, due: st.due, over: false });
+    var back = k.f === 'M' ? 12 : k.f === 'Q' ? 4 : 2;
+    for (var i = 1; i <= back; i++) {
+      var key = pShift(k, up, -i), d = pDue(k, key);
+      if (d < k.ct) break;
+      var s = pState(k, key);
+      if (s.pending.length) out.push({ k: k, key: key, st: s, due: d, over: true });
+    }
+  });
+  return out.sort(function (a, b) { return a.due < b.due ? -1 : a.due > b.due ? 1 : a.k.n.localeCompare(b.k.n); });
+}
+function dueText(due, pending) {
+  var d = daysBetween(today(), due);
+  if (!pending) return '<span class="tag ok">All filed</span>';
+  if (d < 0) return '<span class="tag bad">' + (-d) + ' day' + (d === -1 ? '' : 's') + ' late</span>';
+  if (d === 0) return '<span class="tag bad">Due today</span>';
+  return '<span class="tag ' + (d <= 7 ? 'warn' : 'ok') + '">in ' + d + ' day' + (d === 1 ? '' : 's') + '</span>';
+}
+function tdsDeposit(y, m) { return m === 3 ? ymd(y, 4, 30) : m === 12 ? ymd(y + 1, 1, 7) : ymd(y, m + 1, 7); }
+
+/* WhatsApp texts (Hinglish, as before) */
+function sign() { return S.set.name ? ' - ' + S.set.name : ''; }
+function payMsg(p) {
+  var c = client(p.cid), pi = pinfo(p), name = c ? c.name : p.cname;
+  var when = pi.late ? ', due date ' + fmt(p.due, 1) + ' nikal chuki hai' : p.due ? ', ' + fmt(p.due, 1) + ' tak' : '';
+  return 'Namaste ' + name + ', aapka ' + inr(pi.bal) + ' ka payment (Invoice ' + (p.no || '-') + (p.date ? ', ' + fmt(p.date, 1) : '') + ')' + when + ' pending hai. Kripya jald bhej dein.' + (S.set.upi ? ' UPI: ' + S.set.upi + '.' : '') + ' Dhanyavaad.' + sign();
+}
+function statementMsg(c) {
+  var open = S.pay.filter(function (p) { return p.cid === c.id && pinfo(p).bal > 0; }).sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
+  var tot = sum(open, function (p) { return pinfo(p).bal; });
+  return 'Namaste ' + c.name + ', aapke pending invoices: ' + open.map(function (p) { return (p.no || '-') + (p.date ? ' (' + fmt(p.date, 1) + ')' : '') + ' ' + inr(pinfo(p).bal); }).join('; ') + '. Total ' + inr(tot) + '. Kripya jald payment karein.' + (S.set.upi ? ' UPI: ' + S.set.upi + '.' : '') + ' Dhanyavaad.' + sign();
+}
+function invMsg(p) {
+  var c = client(p.cid), pi = pinfo(p), name = c ? c.name : p.cname;
+  return 'Namaste ' + name + ', Invoice ' + (p.no || '-') + (p.date ? ' dated ' + fmt(p.date, 1) : '') + ': ' + inr(p.amt) + (pi.bal > 0 && pi.bal < p.amt ? ' (balance ' + inr(pi.bal) + ')' : '') + '.' + (p.due && pi.bal > 0 ? ' Due date: ' + fmt(p.due, 1) + '.' : '') + (S.set.upi && pi.bal > 0 ? ' UPI: ' + S.set.upi + '.' : '') + ' Dhanyavaad.' + sign();
+}
+function staffMsg(t) { var s = staffOf(t.sid); return 'Namaste ' + (s ? s.name : '') + ', kaam: ' + t.title + (client(t.cid) ? ' (' + client(t.cid).name + ')' : '') + (t.due ? ', last date ' + fmt(t.due, 1) : '') + '. Kripya time par complete karein.'; }
+function compMsg(k, key, c) {
+  var due = pDue(k, key), late = due < today();
+  return 'Namaste ' + c.name + ', ' + pLabel(k, key) + ' ka ' + k.n + (late ? ' abhi pending hai (last date ' + fmt(due, 1) + ' thi). Kripya documents turant bhej dein.' : ' ' + fmt(due, 1) + ' tak file karna hai. Kripya zaroori documents jald bhej dein.') + ' Dhanyavaad.' + sign();
+}
+
+/* ================= view state + rendering ================= */
+var TABS = [['home', 'Home'], ['clients', 'Clients'], ['tasks', 'Work'], ['pay', 'Payments'], ['vendor', 'Vendors'], ['comp', 'Compliance'], ['staff', 'Staff']];
+var V = { tab: lsGet('od_tab') || 'home', d: null }, QS = { clients: '', tasks: '', pay: '', vendor: '' };
+var F = { pay: 'open', vend: 'open', tstaff: '', tdone: false, more: {} };
+var RQ = 0, DEFER = false, LASTKEY = '';
+function tabsFor() { if (FBM && MODE !== 'db') return []; if (ROLE === 'admin') return TABS; if (ROLE === 'staff') return TABS.slice(0, 3); return TABS.slice(0, 1); }
+function schedule() { if (RQ) return; RQ = setTimeout(function () { RQ = 0; render(); }, 25); }
+function render(full) {
+  var a = document.activeElement, main = $('#main');
+  if (!full && a && main.contains(a) && (a.tagName === 'SELECT' || a.type === 'date')) { DEFER = true; head(); return; }
+  DEFER = false;
+  var ok = tabsFor().map(function (t) { return t[0]; });
+  if (ok.indexOf(V.tab) < 0) { V.tab = 'home'; V.d = null; }
+  var key = V.tab + '|' + (V.d ? V.d.k + ':' + V.d.id : '') + '|' + ROLE + '|' + MODE;
+  if (full || key !== LASTKEY) { LASTKEY = key; nav(); $('#tool').innerHTML = tool(); }
+  var html;
+  try { html = body(); } catch (e) { html = '<div class="note">Something went wrong while showing this page: ' + esc(e.message) + '. Reload the page. Your data is safe.</div>'; if (window.console) console.error(e); }
+  $('#list').innerHTML = html;
+  head();
+}
+function nav() {
+  var n = $('#nav');
+  n.innerHTML = tabsFor().map(function (t) { return '<button type="button" data-a="tab" data-id="' + t[0] + '"' + (t[0] === V.tab ? ' aria-current="page"' : '') + '>' + t[1] + '</button>'; }).join('');
+  var cur = n.querySelector('[aria-current]');
+  if (cur && (cur.offsetLeft < n.scrollLeft || cur.offsetLeft + cur.offsetWidth > n.scrollLeft + n.clientWidth)) n.scrollLeft = Math.max(0, cur.offsetLeft - 16);
+}
+function head() {
+  $('#firm').textContent = S.set.name || 'Clients, payments, work and staff in one place';
+  $('#setb').hidden = !(ROLE === 'admin' && (MODE === 'db' || MODE === 'local'));
+  $('#outb').hidden = !(FBM && FUSER);
+  $('#instb').hidden = !BIP;
+  var t, c = '';
+  if (MODE === 'boot') { t = 'Loading…'; c = 'warn'; }
+  else if (FBM && MODE !== 'db') { t = { login: 'Sign in to continue', checking: 'Checking your access…', setup: 'Signed in as ' + (FUSER ? FUSER.email : ''), waiting: 'Waiting for the owner to give access', fberror: FBERR }[MODE] || ''; c = MODE === 'fberror' ? 'bad' : 'warn'; }
+  else if (FBM && !navigator.onLine) { t = PEND > 0 ? 'Offline · ' + plural(PEND, 'change') + ' will upload when the internet is back' : 'Offline · showing saved data'; c = 'warn'; }
+  else if (MODE === 'local') { t = window.claude ? 'Not syncing: saved in this browser only' : 'Saved in this browser only'; c = 'warn'; }
+  else if (SYNCERR) { t = SYNCERR; c = 'bad'; }
+  else if (PEND > 0) { t = 'Saving…'; c = 'warn'; }
+  else if (!allLoaded()) { t = 'Loading your data…'; c = 'warn'; }
+  else t = ROLE === 'admin' ? 'Synced on all your devices' : ROLE === 'staff' ? 'Synced · staff view' : 'View only';
+  var s = $('#sync'); s.textContent = t; s.className = c;
+}
+function emptyBox(t, msg) { return '<div class="empty">' + (t && loading(t) ? 'Loading…' : msg) + '</div>'; }
+function moreBtn(key, shown, total) { return total > shown ? '<button class="btn more" data-a="more" data-id="' + key + '">Show ' + Math.min(100, total - shown) + ' more of ' + (total - shown) + '</button>' : ''; }
+function lim(key) { return F.more[key] || 100; }
+function tool() {
+  if (FBM && MODE !== 'db') return '';
+  if (V.d) return '<div class="tbar"><button class="btn" data-a="back">‹ Back</button></div>';
+  var s = function (ph, add, label) { return '<div class="tbar"><input type="search" id="q_' + V.tab + '" placeholder="' + ph + '" value="' + esc(QS[V.tab]) + '" data-i="search" autocomplete="off" aria-label="' + ph + '">' + (add ? '<button class="btn pri" data-a="' + add + '">' + label + '</button>' : '') + '</div>'; };
+  switch (V.tab) {
+    case 'clients': return ROLE === 'viewer' ? '' : s('Search name, phone, GSTIN, PAN', 'newClient', '+ Client');
+    case 'tasks': return s('Search work or client', 'newTask', '+ Work');
+    case 'pay': return s('Search client or invoice no.', 'newInv', '+ Invoice');
+    case 'vendor': return s('Search party or bill no.', 'newBill', '+ Bill');
+    case 'comp': return '<div class="tbar"><button class="btn pri" data-a="newComp">+ Compliance</button><button class="btn" data-a="presets">Standard due dates</button></div>';
+    case 'staff': return '<div class="tbar"><button class="btn pri" data-a="newStaff">+ Staff</button></div>';
+  }
+  return '';
+}
+function body() {
+  if (FBM && MODE !== 'db') return authView();
+  if (V.d) { var dv = { client: clientDetail, inv: invDetail, comp: compDetail }[V.d.k]; if (dv) return dv(); }
+  if (MODE === 'db' && ROLE === 'viewer') return '<div class="note">You can only view this page, so office data stays hidden. Ask the office owner to give you Contributor access to see clients and work.</div>';
+  return ({ home: homeView, clients: clientsView, tasks: tasksView, pay: payView, vendor: vendorView, comp: compView, staff: staffView }[V.tab] || homeView)();
+}
+
+/* ---------- Home ---------- */
+function homeView() {
+  if (ROLE !== 'admin') return homeStaff();
+  var t = today(), h = '';
+  if (LOCALONLY) h += '<div class="note"><b>' + plural(countRecords(LOCALONLY), 'record') + ' on this device are not in your shared data.</b><div class="meta">They were saved here before sync was on. Upload them so your other devices and staff see them.</div><div class="acts"><button class="btn pri" data-a="uploadLocal">Upload them now</button><button class="btn" data-a="backupLocal">Download them as backup</button></div></div>';
+  if (MODE !== 'boot' && !loading('set') && !S.set.name) h += '<div class="note">Add your firm name, address, GSTIN and bank details once. They print on every invoice and sign your WhatsApp messages.<div class="acts"><button class="btn pri" data-a="settings">Add firm details</button></div></div>';
+  var open = S.pay.filter(function (p) { return pinfo(p).bal > 0; }), over = open.filter(function (p) { return pinfo(p).st === 'over'; });
+  var tasks = S.tasks.filter(function (x) { return x.st !== 'done'; }), late = tasks.filter(function (x) { return x.due && x.due < t; });
+  var vbal = sum(S.vp, function (x) { return vinfo(x).bal; });
+  h += '<div class="stats four">' +
+    '<div class="stat warn"><b>' + inr(sum(open, function (p) { return pinfo(p).bal; })) + '</b><span>To collect · ' + plural(open.length, 'invoice') + '</span></div>' +
+    '<div class="stat bad"><b>' + inr(sum(over, function (p) { return pinfo(p).bal; })) + '</b><span>Overdue · ' + plural(over.length, 'invoice') + '</span></div>' +
+    '<div class="stat' + (late.length ? ' bad' : '') + '"><b>' + tasks.length + '</b><span>Open work' + (late.length ? ' · ' + late.length + ' late' : '') + '</span></div>' +
+    '<div class="stat"><b>' + inr(vbal) + '</b><span>To pay vendors</span></div></div>';
+  var att = '';
+  var ce = compEntries().filter(function (e) { return e.st.pending.length && (e.over || daysBetween(t, e.due) <= 7); });
+  if (ce.length) att += '<h2>Filings due</h2>' + ce.slice(0, 8).map(compCard).join('');
+  if (over.length) att += '<h2>Overdue payments</h2>' + over.sort(function (a, b) { return pinfo(b).late - pinfo(a).late; }).slice(0, 5).map(invCard).join('') + (over.length > 5 ? '<button class="btn more" data-a="tab" data-id="pay" data-f="over">See all ' + over.length + ' overdue invoices</button>' : '');
+  var soon = tasks.filter(function (x) { return x.due && daysBetween(t, x.due) <= 3; }).sort(function (a, b) { return a.due < b.due ? -1 : 1; });
+  if (soon.length) att += '<h2>Work due in 3 days</h2>' + soon.slice(0, 6).map(function (x) { return taskCard(x, true); }).join('');
+  var y = +t.slice(0, 4), m = +t.slice(5, 7), pm = m === 1 ? 12 : m - 1, py = m === 1 ? y - 1 : y, pk = py + '-' + pad(pm), dep = tdsDeposit(py, pm);
+  var ptds = sum(S.vp, function (x) { return sum(x.pays, function (r) { return monthKey(r.date) === pk ? r.tds : 0; }); });
+  if (ptds > 0 && t <= dep) att += '<h2>TDS to deposit</h2><div class="card top"><div class="grow"><b>' + inr(ptds) + '</b> TDS you deducted on vendor payments in ' + MON[pm - 1] + ' ' + py + '<div class="meta">Deposit by ' + fmt(dep, 1) + '</div></div><button class="btn" data-a="tab" data-id="vendor">Vendors</button></div>';
+  h += att || (S.clients.length || S.pay.length ? '<h2>Today</h2>' + emptyBox('pay', 'All clear. Nothing overdue and no filings due this week.') : '');
+  if (!S.clients.length && !loading('clients')) h += '<h2>Start here</h2><div class="card"><div class="meta">Add your clients first. Then add invoices, work and compliance for them. If you used the old Office Desk, import its backup file.</div><div class="acts"><button class="btn pri" data-a="newClient">+ Add first client</button><button class="btn" data-a="import">Import old backup</button></div></div>';
+  return h + dataCard() + installCard();
+}
+function homeStaff() {
+  var t = today(), mine = FBM && MEMBER && MEMBER.sid && staffOf(MEMBER.sid) ? MEMBER.sid : '';
+  var open = S.tasks.filter(function (x) { return x.st !== 'done' && (!mine || x.sid === mine); }), late = open.filter(function (x) { return x.due && x.due < t; });
+  var soon = open.slice().sort(function (a, b) { return (a.due || '9') < (b.due || '9') ? -1 : 1; }).slice(0, 10);
+  return (MODE === 'db' ? '<div class="note"><span class="meta">Staff view. Payments, vendors and compliance are visible to the office owner only.</span></div>' : '') +
+    '<div class="stats"><div class="stat' + (late.length ? ' bad' : '') + '"><b>' + open.length + '</b><span>' + (mine ? 'Your open work' : 'Open work') + (late.length ? ' · ' + late.length + ' late' : '') + '</span></div><div class="stat"><b>' + S.clients.length + '</b><span>Clients</span></div></div>' +
+    '<h2>' + (mine ? 'Your work, due soonest' : 'Work due soonest') + '</h2>' + (soon.length ? soon.map(function (x) { return taskCard(x, true); }).join('') : emptyBox('tasks', 'No open work. Add work in the Work tab.')) + installCard();
+}
+function dataCard() {
+  var lb = lsGet('od_lastbackup'), age = okDate(lb) ? daysBetween(lb, today()) : null, n = S.clients.length + S.pay.length + S.tasks.length + S.vp.length + S.staff.length;
+  var warn = n > 0 && (age === null || age > 30);
+  var tot = n + S.comps.length + Object.keys(S.marks).length;
+  return '<h2>Backup and Excel</h2><div class="card' + (warn ? ' warnb' : '') + '"><div class="meta">' +
+    (lb && age !== null ? 'Last backup from this device: ' + fmt(lb, 1) + (age > 0 ? ' (' + plural(age, 'day') + ' ago).' : ' (today).') : 'No backup downloaded from this device yet.') +
+    ' Save a backup every month and keep it in Google Drive or email.' + (MODE === 'local' ? ' Right now your data lives only in this browser, so a backup matters even more.' : '') +
+    (tot > 20000 ? ' <b class="bad">You have ' + tot + ' records; the limit is 25,000. Download a backup and delete old paid invoices and finished work.</b>' : '') +
+    '</div><div class="acts"><button class="btn pri" data-a="backup">Download backup</button><button class="btn" data-a="import">Import backup</button><button class="btn" data-a="exports">Excel files</button></div></div>';
+}
+
+/* ---------- Clients ---------- */
+function clientsView() {
+  var q = QS.clients.toLowerCase(), dm = ROLE === 'admin' ? dueMap() : {};
+  var L = S.clients.filter(function (c) { return !q || has(c.name, q) || has(c.phone, q) || has(c.gstin, q) || has(c.pan, q) || has(c.email, q); }).sort(byName);
+  if (!S.clients.length) return emptyBox('clients', 'No clients yet. Tap + Client to add your first one.');
+  var n = lim('clients');
+  return '<p class="meta">' + plural(L.length, 'client') + (q ? ' found' : '') + '</p>' + (L.length ? L.slice(0, n).map(function (c) {
+    var d = dm[c.id] || 0, w = wa(c.phone), tl = telHref(c.phone);
+    return '<div class="card"><div class="top"><div class="grow"><button class="lnk" data-a="openClient" data-id="' + c.id + '">' + esc(c.name) + '</button><div class="meta">' + esc(c.phone || 'No phone') + (c.gstin ? ' · ' + esc(c.gstin) : c.pan ? ' · PAN ' + esc(c.pan) : '') + '</div></div>' +
+      (ROLE === 'admin' ? '<div class="amt">' + (d ? '<b class="warn">' + inr(d) + '</b><div class="meta">due</div>' : '<span class="tag ok">Clear</span>') + '</div>' : '') + '</div>' +
+      '<div class="acts">' + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, 'Namaste ' + c.name + ', ')) + '">WhatsApp</a>' : '') + (tl ? '<a class="btn" href="' + esc(tl) + '">Call</a>' : '') + '<button class="btn" data-a="openClient" data-id="' + c.id + '">Details</button><button class="btn" data-a="editClient" data-id="' + c.id + '">Edit</button></div></div>';
+  }).join('') + moreBtn('clients', n, L.length) : emptyBox(null, 'No client matches “' + esc(QS.clients) + '”.'));
+}
+function clientDetail() {
+  var c = client(V.d.id); if (!c) { V.d = null; return '<div class="empty">This client was deleted.</div>'; }
+  var t = today(), w = wa(c.phone), tl = telHref(c.phone);
+  var h = '<div class="dhead"><h2>' + esc(c.name) + '</h2></div><div class="card"><dl class="kv">' +
+    (c.phone ? '<dt>Mobile</dt><dd>' + esc(c.phone) + '</dd>' : '') + (c.email ? '<dt>Email</dt><dd>' + esc(c.email) + '</dd>' : '') +
+    (c.gstin ? '<dt>GSTIN</dt><dd>' + esc(c.gstin) + '</dd>' : '') + (c.pan ? '<dt>PAN</dt><dd>' + esc(c.pan) + '</dd>' : '') +
+    (c.state ? '<dt>State</dt><dd>' + esc(stateName(c.state)) + '</dd>' : '') + (c.addr ? '<dt>Address</dt><dd>' + esc(c.addr).replace(/\n/g, '<br>') + '</dd>' : '') +
+    (c.notes ? '<dt>Notes</dt><dd>' + esc(c.notes).replace(/\n/g, '<br>') + '</dd>' : '') + '</dl>' +
+    (!c.phone && !c.email && !c.gstin && !c.pan && !c.addr && !c.notes ? '<div class="meta">No details yet.</div>' : '') +
+    '<div class="acts">' + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, 'Namaste ' + c.name + ', ')) + '">WhatsApp</a>' : '') + (tl ? '<a class="btn" href="' + esc(tl) + '">Call</a>' : '') + (c.phone ? '<button class="btn" data-a="copy" data-id="' + esc(c.phone) + '">Copy number</button>' : '') + '<button class="btn" data-a="editClient" data-id="' + c.id + '">Edit</button></div></div>';
+  if (ROLE === 'admin') {
+    var inv = S.pay.filter(function (p) { return p.cid === c.id; }), open = inv.filter(function (p) { return pinfo(p).bal > 0; }).sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; });
+    var tot = sum(open, function (p) { return pinfo(p).bal; }), tds = sum(inv, function (p) { return fyStart(p.date || t) === fyStart(t) ? pinfo(p).tds : 0; });
+    h += '<h2>Invoices <span class="meta">' + (open.length ? inr(tot) + ' due' : 'nothing due') + '</span></h2>';
+    h += open.length ? open.map(invCard).join('') : '<div class="empty">No unpaid invoices.' + (inv.length ? ' ' + plural(inv.length, 'invoice') + ' fully paid.' : '') + '</div>';
+    h += '<div class="acts"><button class="btn pri" data-a="newInv" data-id="' + c.id + '">+ New invoice</button>' + (open.length && w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, statementMsg(c))) + '">Send statement on WhatsApp</a>' : '') + (inv.length - open.length ? '<button class="btn" data-a="clientPaid" data-id="' + c.id + '">Paid invoices (' + (inv.length - open.length) + ')</button>' : '') + '</div>';
+    if (tds) h += '<p class="meta">TDS deducted by this client in FY ' + fyLabel(fyStart(t)) + ': ' + inr(tds) + ' (match with Form 26AS).</p>';
+    var ks = S.comps.filter(function (k) { return k.cl.indexOf(c.id) > -1; });
+    if (ks.length) h += '<h2>Compliance</h2>' + ks.map(function (k) { var key = pUpcoming(k, t), st = pState(k, key), filed = !!st.f[c.id]; return '<div class="card top"><div class="grow"><b>' + esc(k.n) + '</b><div class="meta">' + esc(pLabel(k, key)) + ' · last date ' + fmt(st.due, 1) + '</div></div>' + (filed ? '<span class="tag ok">Filed</span>' : '<button class="btn sm" data-a="markOne" data-id="' + k.id + '" data-k="' + key + '" data-c="' + c.id + '">Mark filed</button>') + '</div>'; }).join('');
+  }
+  var tasks = S.tasks.filter(function (x) { return x.cid === c.id && x.st !== 'done'; }).sort(function (a, b) { return (a.due || '9') < (b.due || '9') ? -1 : 1; });
+  h += '<h2>Open work</h2>' + (tasks.length ? tasks.map(function (x) { return taskCard(x, true); }).join('') : '<div class="empty">No open work for this client.</div>') + '<div class="acts"><button class="btn" data-a="newTask" data-id="' + c.id + '">+ Add work</button></div>';
+  return h;
+}
+
+/* ---------- Work ---------- */
+function taskCard(x, compact) {
+  var t = today(), lateBy = x.st !== 'done' && x.due && x.due < t, s = staffOf(x.sid);
+  var who = (x.cid || x.cname ? esc(cn(x)) : 'No client') + ' · ' + esc(sname(x.sid));
+  var right = x.st === 'done' ? '<span class="tag ok">Done' + (x.done ? ' ' + fmt(x.done) : '') + '</span>' : '<span class="meta ' + (lateBy ? 'bad' : '') + '">' + (x.due ? fmt(x.due) : 'No date') + (lateBy ? ' · late' : x.due === t ? ' · today' : '') + '</span>';
+  var acts = '<div class="acts"><select class="inline" data-c="taskSt" data-id="' + x.id + '" aria-label="Status of ' + esc(x.title) + '"' + (ROLE === 'viewer' ? ' disabled' : '') + '>' + [['todo', 'To do'], ['doing', 'In progress'], ['done', 'Done']].map(function (o) { return '<option value="' + o[0] + '"' + (x.st === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
+    (s && x.st !== 'done' && wa(s.phone) ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(s.phone, staffMsg(x))) + '">Remind staff</a>' : '') + (ROLE !== 'viewer' ? '<button class="btn" data-a="editTask" data-id="' + x.id + '">Edit</button>' : '') + '</div>';
+  return '<div class="card' + (lateBy ? ' badb' : '') + '"><div class="top"><div class="grow"><b>' + esc(x.title) + '</b><div class="meta">' + who + '</div>' + (x.note && !compact ? '<div class="meta">' + esc(x.note) + '</div>' : '') + '</div><div class="amt">' + right + '</div></div>' + acts + '</div>';
+}
+function tasksView() {
+  var q = QS.tasks.toLowerCase(), t = today();
+  var L = S.tasks.filter(function (x) { return (!q || has(x.title, q) || has(cn(x), q) || has(x.note, q)) && (!F.tstaff || (F.tstaff === '-' ? !staffOf(x.sid) : x.sid === F.tstaff)); });
+  var h = '';
+  if (S.staff.length) h += '<div class="chips"><select class="inline" id="f_tstaff" data-c="tstaff" aria-label="Show work for"><option value="">Everyone</option><option value="-"' + (F.tstaff === '-' ? ' selected' : '') + '>Unassigned</option>' + S.staff.slice().sort(byName).map(function (s) { return '<option value="' + s.id + '"' + (F.tstaff === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select></div>';
+  if (!S.tasks.length) return h + emptyBox('tasks', 'No work added yet. Tap + Work to add the first job.');
+  var byDue = function (a, b) { return (a.due || '9999') < (b.due || '9999') ? -1 : (a.due || '9999') > (b.due || '9999') ? 1 : a.title.localeCompare(b.title); };
+  [['todo', 'To do'], ['doing', 'In progress']].forEach(function (g) {
+    var G = L.filter(function (x) { return x.st === g[0]; }).sort(byDue), lt = G.filter(function (x) { return x.due && x.due < t; }).length, n = lim('t' + g[0]);
+    h += '<h2>' + g[1] + ' <span class="meta">' + G.length + (lt ? ' · ' + lt + ' late' : '') + '</span></h2>' + (G.length ? G.slice(0, n).map(function (x) { return taskCard(x); }).join('') + moreBtn('t' + g[0], n, G.length) : '<div class="empty">Nothing here.</div>');
+  });
+  var D = L.filter(function (x) { return x.st === 'done'; }).sort(function (a, b) { return (b.done || '') < (a.done || '') ? -1 : 1; });
+  h += '<h2>Done <span class="meta">' + D.length + '</span></h2>';
+  if (D.length) h += F.tdone ? D.slice(0, lim('tdone')).map(function (x) { return taskCard(x); }).join('') + moreBtn('tdone', lim('tdone'), D.length) + '<button class="btn more" data-a="tdone">Hide done work</button>' : '<button class="btn more" data-a="tdone">Show done work</button>';
+  return h;
+}
+
+/* ---------- Payments ---------- */
+function invCard(p) {
+  var pi = pinfo(p), c = client(p.cid), w = c && wa(c.phone);
+  return '<div class="card' + (pi.st === 'over' ? ' badb' : '') + '"><div class="top"><div class="grow"><button class="lnk" data-a="openInv" data-id="' + p.id + '">' + esc(cn(p)) + '</button><div class="meta">' + esc(p.no || 'No number') + ' · ' + (p.date ? fmt(p.date) : 'no date') + (p.due ? ' · due ' + fmt(p.due) : '') + '</div></div>' +
+    '<div class="amt"><b>' + inr(p.amt) + '</b>' + (pi.bal > 0 && pi.bal < p.amt ? '<div class="meta">Balance ' + inr(pi.bal) + '</div>' : '') + '<div>' + payTag(pi) + '</div></div></div>' +
+    '<div class="acts">' + (pi.bal > 0 && w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, payMsg(p))) + '">Remind</a>' : '') + (pi.bal > 0 ? '<button class="btn pri" data-a="rcv" data-id="' + p.id + '">Record payment</button>' : '') + '<button class="btn" data-a="openInv" data-id="' + p.id + '">' + (pi.bal > 0 ? 'Invoice' : 'View invoice') + '</button></div></div>';
+}
+function payView() {
+  var t = today(), fy = fyStart(t), mk = monthKey(t), q = QS.pay.toLowerCase();
+  var open = S.pay.filter(function (p) { return pinfo(p).bal > 0; });
+  var rcvM = sum(S.pay, function (p) { return sum(p.rcv, function (r) { return monthKey(r.date) === mk ? r.amt : 0; }); });
+  var tdsY = sum(S.pay, function (p) { return sum(p.rcv, function (r) { return r.date && fyStart(r.date) === fy ? r.tds : 0; }); });
+  var ag = [0, 0, 0, 0, 0];
+  open.forEach(function (p) { var pi = pinfo(p), d = pi.late, b = d <= 0 ? 0 : d <= 30 ? 1 : d <= 60 ? 2 : d <= 90 ? 3 : 4; ag[b] = r2(ag[b] + pi.bal); });
+  var h = '<div class="stats four"><div class="stat warn"><b>' + inr(sum(open, function (p) { return pinfo(p).bal; })) + '</b><span>To collect</span></div><div class="stat bad"><b>' + inr(r2(ag[1] + ag[2] + ag[3] + ag[4])) + '</b><span>Overdue</span></div><div class="stat"><b>' + inr(rcvM) + '</b><span>Received in ' + MON[+t.slice(5, 7) - 1] + '</span></div><div class="stat"><b>' + inr(tdsY) + '</b><span>TDS by clients, FY ' + fyShort(fy) + '</span></div></div>';
+  if (open.length) h += '<div class="aging" aria-label="Unpaid amount by days overdue">' + [['Not due yet', 0], ['1–30 days late', 1], ['31–60 days late', 2], ['61–90 days late', 3], ['Over 90 days late', 4]].filter(function (a) { return ag[a[1]] > 0; }).map(function (a) { return '<div>' + a[0] + '<b class="' + (a[1] >= 2 ? 'bad' : '') + '">' + inr(ag[a[1]]) + '</b></div>'; }).join('') + '</div>';
+  h += '<div class="chips" role="group" aria-label="Filter invoices">' + [['open', 'Unpaid'], ['over', 'Overdue'], ['paid', 'Paid'], ['all', 'All']].map(function (f) { return '<button class="chip" data-a="fpay" data-id="' + f[0] + '" aria-pressed="' + (F.pay === f[0]) + '">' + f[1] + '</button>'; }).join('') + '</div>';
+  if (!S.pay.length) return h + emptyBox('pay', S.clients.length ? 'No invoices yet. Tap + Invoice to make the first one.' : 'Add a client first, then make an invoice.');
+  var L = S.pay.filter(function (p) { var pi = pinfo(p); if (F.pay === 'open' && !(pi.bal > 0)) return false; if (F.pay === 'over' && pi.st !== 'over') return false; if (F.pay === 'paid' && pi.bal > 0) return false; return !q || has(cn(p), q) || has(p.no, q) || has(p.desc, q); });
+  var dk = function (p) { return p.due || p.date || '9999'; };
+  L.sort(function (a, b) { var A = pinfo(a), B = pinfo(b); if ((A.bal > 0) !== (B.bal > 0)) return A.bal > 0 ? -1 : 1; if (A.bal > 0) return dk(a) < dk(b) ? -1 : dk(a) > dk(b) ? 1 : 0; return (B.last || b.date || '') < (A.last || a.date || '') ? -1 : 1; });
+  var n = lim('pay');
+  return h + '<p class="meta">' + plural(L.length, 'invoice') + '</p>' + (L.length ? L.slice(0, n).map(invCard).join('') + moreBtn('pay', n, L.length) : '<div class="empty">No invoices here.</div>');
+}
+function invPaper(p) {
+  var s = S.set, c = client(p.cid) || { name: p.cname || 'Client', addr: '', gstin: '', pan: '', state: '' }, pi = pinfo(p), tax = r2(p.cgst + p.sgst + p.igst);
+  var pos = c.state || (GST_RE.test(c.gstin) ? c.gstin.slice(0, 2) : '') || s.state;
+  var rows = '<div><span>Taxable value</span><span>' + inr(p.tx) + '</span></div>' +
+    (p.cgst ? '<div><span>CGST @ ' + (p.rate / 2) + '%</span><span>' + inr(p.cgst) + '</span></div><div><span>SGST @ ' + (p.rate / 2) + '%</span><span>' + inr(p.sgst) + '</span></div>' : '') +
+    (p.igst ? '<div><span>IGST @ ' + p.rate + '%</span><span>' + inr(p.igst) + '</span></div>' : '') +
+    '<div class="t"><span>Total</span><span>' + inr(p.amt) + '</span></div>' +
+    (pi.rec || pi.tds ? '<div><span>Received</span><span>' + inr(pi.rec) + '</span></div>' + (pi.tds ? '<div><span>TDS deducted</span><span>' + inr(pi.tds) + '</span></div>' : '') + '<div class="t"><span>Balance due</span><span>' + inr(pi.bal) + '</span></div>' : '');
+  var bank = [s.bank ? 'Bank: ' + s.bank : '', s.acname ? 'A/c name: ' + s.acname : '', s.acno ? 'A/c no.: ' + s.acno : '', s.ifsc ? 'IFSC: ' + s.ifsc : '', s.upi ? 'UPI: ' + s.upi : ''].filter(Boolean);
+  var qr = s.upi && pi.bal > 0 ? qrSvg(upiLink(p), 116) : '';
+  return '<div class="inv"><div class="inv-top"><div><div class="inv-firm">' + esc(s.name || 'Your firm name') + '</div>' + (s.addr ? '<div class="im">' + esc(s.addr).replace(/\n/g, '<br>') + '</div>' : '') +
+    '<div class="im">' + [s.gstin ? 'GSTIN ' + esc(s.gstin) : '', s.pan ? 'PAN ' + esc(s.pan) : ''].filter(Boolean).join(' · ') + '</div><div class="im">' + [s.phone ? esc(s.phone) : '', s.email ? esc(s.email) : ''].filter(Boolean).join(' · ') + '</div></div>' +
+    '<div class="inv-title">' + (tax > 0 ? 'TAX INVOICE' : 'INVOICE') + '</div></div><hr>' +
+    '<div class="inv-meta"><div><div class="im">Bill to</div><b>' + esc(c.name) + '</b>' + (c.addr ? '<div>' + esc(c.addr).replace(/\n/g, '<br>') + '</div>' : '') + (c.gstin ? '<div>GSTIN ' + esc(c.gstin) + '</div>' : c.pan ? '<div>PAN ' + esc(c.pan) + '</div>' : '') + (c.state ? '<div>State: ' + esc(stateName(c.state)) + '</div>' : '') + '</div>' +
+    '<div><div>Invoice no.: <b>' + esc(p.no || '-') + '</b></div><div>Invoice date: ' + (p.date ? fmt(p.date, 1) : '-') + '</div>' + (p.due ? '<div>Due date: ' + fmt(p.due, 1) + '</div>' : '') + (tax > 0 && pos ? '<div>Place of supply: ' + esc(stateName(pos)) + '</div>' : '') + '</div></div>' +
+    '<div class="inv-tw"><table><thead><tr><th>#</th><th>Description</th><th>SAC</th><th class="r">Amount</th></tr></thead><tbody><tr><td>1</td><td>' + esc(p.desc || 'Professional fees') + '</td><td>' + esc(p.sac || '-') + '</td><td class="r">' + inr(p.tx) + '</td></tr></tbody></table></div>' +
+    '<div class="inv-tot">' + rows + '</div><p><span class="im">Amount in words:</span> ' + esc(amountWords(p.amt)) + '</p>' +
+    (bank.length || qr ? '<div class="inv-pay"><div>' + (bank.length ? '<div class="im">Payment details</div>' + bank.map(function (b) { return '<div>' + esc(b) + '</div>'; }).join('') : '') + '</div>' + (qr ? '<div style="text-align:center">' + qr + '<div class="im" style="font-size:11px">Scan to pay ' + inr(pi.bal) + '</div></div>' : '') + '</div>' : '') +
+    (p.note || s.terms ? '<p class="im">' + esc([p.note, s.terms].filter(Boolean).join(' · ')) + '</p>' : '') +
+    '<div class="inv-sign">For ' + esc(s.name || 'your firm') + '<br><br><br><span class="im">Authorised Signatory</span></div></div>';
+}
+function invDetail() {
+  var p = find('pay', V.d.id); if (!p) { V.d = null; return '<div class="empty">This invoice was deleted.</div>'; }
+  var pi = pinfo(p), c = client(p.cid), w = c && wa(c.phone);
+  var h = '<div class="dhead"><h2>Invoice ' + esc(p.no || '') + '</h2><div class="meta">' + esc(cn(p)) + ' · ' + payTag(pi) + '</div></div>' +
+    (!S.set.name ? '<div class="note">Your firm name and address are missing on this invoice.<div class="acts"><button class="btn pri" data-a="settings">Add firm details</button></div></div>' : '') +
+    '<div class="acts"><button class="btn pri" data-a="pdf" data-id="' + p.id + '">Download PDF</button>' + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(wa(c.phone, invMsg(p))) + '">Send on WhatsApp</a>' : '') + (pi.bal > 0 ? '<button class="btn" data-a="rcv" data-id="' + p.id + '">Record payment</button>' : '') + '<button class="btn" data-a="editInv" data-id="' + p.id + '">Edit</button></div>' +
+    '<p class="meta">To share the invoice, download the PDF and attach it in WhatsApp or email.</p>' + invPaper(p);
+  if (p.rcv.length) h += '<h2>Payments received</h2>' + rcvList(p.rcv, null);
+  return h;
+}
+function rcvList(list, act) {
+  return '<div class="card">' + list.slice().sort(function (a, b) { return (b.date || '') < (a.date || '') ? -1 : 1; }).map(function (r) {
+    return '<div class="row"><div class="grow"><b>' + inr(r.amt) + '</b>' + (r.tds ? ' + TDS ' + inr(r.tds) : '') + '<div class="meta">' + (r.date ? fmt(r.date, 1) : 'Date not recorded') + (r.mode ? ' · ' + esc(r.mode) : '') + (r.ref ? ' · ' + esc(r.ref) : '') + '</div></div>' + (act && ROLE === 'admin' ? '<button class="btn del sm" data-a="' + act.a + '" data-id="' + act.id + '" data-r="' + r.id + '">Delete</button>' : '') + '</div>';
+  }).join('') + '</div>';
+}
+
+/* ---------- Vendors ---------- */
+function vendorView() {
+  var t = today(), mk = monthKey(t), q = QS.vendor.toLowerCase(), y = +t.slice(0, 4), m = +t.slice(5, 7);
+  var paidM = sum(S.vp, function (x) { return sum(x.pays, function (r) { return monthKey(r.date) === mk ? r.amt : 0; }); });
+  var tdsM = sum(S.vp, function (x) { return sum(x.pays, function (r) { return monthKey(r.date) === mk ? r.tds : 0; }); });
+  var h = '<div class="stats four"><div class="stat warn"><b>' + inr(sum(S.vp, function (x) { return vinfo(x).bal; })) + '</b><span>To pay vendors</span></div><div class="stat"><b>' + inr(paidM) + '</b><span>Paid in ' + MON[m - 1] + '</span></div><div class="stat"><b>' + inr(tdsM) + '</b><span>TDS deducted in ' + MON[m - 1] + ' · deposit by ' + fmt(tdsDeposit(y, m)) + '</span></div><div class="stat"><b>' + S.vp.filter(function (x) { return vinfo(x).late; }).length + '</b><span>Bills past due</span></div></div>';
+  h += '<div class="chips" role="group" aria-label="Filter bills">' + [['open', 'Unpaid'], ['all', 'All bills']].map(function (f) { return '<button class="chip" data-a="fvend" data-id="' + f[0] + '" aria-pressed="' + (F.vend === f[0]) + '">' + f[1] + '</button>'; }).join('') + '</div>';
+  if (!S.vp.length) return h + emptyBox('vp', 'No vendor bills yet. Tap + Bill to add rent, salary, software or any bill you have to pay.');
+  var L = S.vp.filter(function (x) { return (F.vend === 'all' || vinfo(x).bal > 0) && (!q || has(x.party, q) || has(x.bill, q) || has(x.rem, q)); });
+  if (!L.length) return h + '<div class="empty">' + (q ? 'No bill matches “' + esc(QS.vendor) + '”.' : 'All bills are paid.') + '</div>';
+  var groups = {}; L.forEach(function (x) { (groups[x.party] = groups[x.party] || []).push(x); });
+  var parties = Object.keys(groups).sort(function (a, b) { var A = sum(groups[a], function (x) { return vinfo(x).bal; }), B = sum(groups[b], function (x) { return vinfo(x).bal; }); return B - A || a.localeCompare(b); });
+  var n = lim('vendor'), shown = 0;
+  parties.forEach(function (p) {
+    if (shown >= n) return;
+    var G = groups[p].sort(function (a, b) { var A = vinfo(a).bal > 0, B = vinfo(b).bal > 0; if (A !== B) return A ? -1 : 1; return (b.date || '') < (a.date || '') ? -1 : 1; }), pe = sum(G, function (x) { return vinfo(x).bal; });
+    h += '<h2>' + esc(p) + ' <span class="meta">' + (pe ? inr(pe) + ' to pay' : 'all paid') + '</span></h2>';
+    G.forEach(function (x) {
+      shown++; var vi = vinfo(x);
+      h += '<div class="card' + (vi.late ? ' badb' : '') + '"><div class="top"><div class="grow"><b>' + inr(x.amt) + '</b>' + (x.bill ? ' · Bill ' + esc(x.bill) : '') + '<div class="meta">Bill date ' + fmt(x.date) + (x.due ? ' · due ' + fmt(x.due) : '') + '</div>' + (x.rem ? '<div class="meta">' + esc(x.rem) + '</div>' : '') + '</div><div class="amt">' +
+        (vi.bal <= 0 ? '<span class="tag ok">Paid</span>' + (x.pays.length ? '<div class="meta">' + fmt(x.pays.reduce(function (mx, r) { return r.date > mx ? r.date : mx; }, '')) + '</div>' : '') : (vi.late ? '<span class="tag bad">' + vi.late + 'd late</span>' : '<span class="tag warn">' + (vi.paid + vi.tds > 0 ? 'Part paid' : 'Not paid') + '</span>') + (vi.bal < x.amt ? '<div class="meta">Balance ' + inr(vi.bal) + '</div>' : '')) +
+        '</div></div><div class="acts">' + (vi.bal > 0 ? '<button class="btn pri" data-a="vpay" data-id="' + x.id + '">Record payment</button>' : '') + (x.pays.length ? '<button class="btn" data-a="vpay" data-id="' + x.id + '">Payments (' + x.pays.length + ')</button>' : '') + '<button class="btn" data-a="editBill" data-id="' + x.id + '">Edit</button></div></div>';
+    });
+  });
+  return h + moreBtn('vendor', n, L.length);
+}
+
+/* ---------- Compliance ---------- */
+function compCard(e) {
+  var k = e.k, st = e.st, pct = st.req.length ? Math.round(st.filed.length / st.req.length * 100) : 0;
+  return '<div class="card' + (e.over ? ' badb' : '') + '"><div class="top"><div class="grow"><button class="lnk" data-a="openComp" data-id="' + k.id + '" data-k="' + e.key + '">' + esc(k.n) + '</button><div class="meta">' + esc(pLabel(k, e.key)) + ' · last date ' + fmt(e.due, 1) + '</div></div><div class="amt">' + dueText(e.due, st.pending.length) + '</div></div>' +
+    '<div class="meta" style="margin-top:6px">' + st.filed.length + ' of ' + st.req.length + ' filed' + (st.pending.length ? ' · ' + st.pending.length + ' pending' : '') + '</div><div class="bar"><i style="width:' + pct + '%"></i></div>' +
+    '<div class="acts"><button class="btn" data-a="openComp" data-id="' + k.id + '" data-k="' + e.key + '">Open</button></div></div>';
+}
+function compView() {
+  var h = '<p class="meta">Standard due dates are filled in. When the government extends a date, open that period and change its last date.</p>';
+  if (!S.comps.length) return h + emptyBox('comps', 'No compliance added. Tap Standard due dates to add GSTR, TDS, ITR and more.');
+  var E = compEntries(), over = E.filter(function (e) { return e.over; }), up = E.filter(function (e) { return !e.over; });
+  if (over.length) h += '<h2>Late <span class="meta">' + over.length + '</span></h2>' + over.map(compCard).join('');
+  h += '<h2>Coming up</h2>' + (up.length ? up.map(compCard).join('') : '<div class="empty">Select clients in a compliance to start tracking it.</div>');
+  var idle = S.comps.filter(function (k) { return !k.cl.some(function (c) { return client(c); }); }).sort(function (a, b) { return a.n.localeCompare(b.n); });
+  if (idle.length) h += '<h2>No clients selected <span class="meta">' + idle.length + '</span></h2><div class="card">' + idle.map(function (k) { return '<div class="row"><div class="grow"><b>' + esc(k.n) + '</b><div class="meta">' + esc(ruleText(k)) + '</div></div><button class="btn sm" data-a="editComp" data-id="' + k.id + '">Select clients</button></div>'; }).join('') + '</div>';
+  return h;
+}
+function compDetail() {
+  var k = comp(V.d.id); if (!k) { V.d = null; return '<div class="empty">This compliance was deleted.</div>'; }
+  var key = V.d.p || pUpcoming(k, today()), st = pState(k, key), std = pDueStd(k, key), pct = st.req.length ? Math.round(st.filed.length / st.req.length * 100) : 0;
+  var h = '<div class="dhead"><h2>' + esc(k.n) + '</h2><div class="meta">' + esc(ruleText(k)) + '</div></div>' +
+    '<div class="pnav"><button class="btn" data-a="pnav" data-id="-1" aria-label="Previous period">‹ Earlier</button><b>' + esc(pLabel(k, key)) + '</b><button class="btn" data-a="pnav" data-id="1" aria-label="Next period">Later ›</button></div>' +
+    '<div class="card"><div class="top"><div class="grow"><div class="meta">Last date</div><div class="big">' + fmt(st.due, 1) + '</div>' + (st.due !== std ? '<div class="meta">Extended (standard date ' + fmt(std, 1) + ')</div>' : '') + '</div><div class="amt">' + dueText(st.due, st.pending.length) + '</div></div>' +
+    '<div class="meta" style="margin-top:6px">' + st.filed.length + ' of ' + st.req.length + ' filed</div><div class="bar"><i style="width:' + pct + '%"></i></div>' +
+    '<div class="acts"><button class="btn" data-a="pdue">Change last date</button>' + (st.pending.length > 1 ? '<button class="btn" data-a="pall">Mark all filed</button>' : '') + '<button class="btn" data-a="editComp" data-id="' + k.id + '">Edit clients and dates</button></div></div>';
+  h += '<h2>Pending <span class="meta">' + st.pending.length + '</span></h2>' + (st.pending.length ? '<div class="card">' + st.pending.map(function (c) { var w = wa(c.phone); return '<div class="row"><div class="grow"><b>' + esc(c.name) + '</b>' + (c.gstin ? '<div class="meta">' + esc(c.gstin) + '</div>' : '') + '</div><div class="acts" style="margin:0">' + (w ? '<a class="btn sm" target="_blank" rel="noopener" href="' + esc(wa(c.phone, compMsg(k, key, c))) + '">Remind</a>' : '') + '<button class="btn pri sm" data-a="mark" data-id="' + c.id + '">Mark filed</button></div></div>'; }).join('') + '</div>' : '<div class="empty">' + (st.req.length ? 'Everyone is filed for this period.' : k.cl.some(function (c) { return client(c); }) ? 'The selected clients were added after this period, so nothing is due here.' : 'No clients selected for this compliance.') + '</div>');
+  if (st.filed.length) h += '<h2>Filed <span class="meta">' + st.filed.length + '</span></h2><div class="card">' + st.filed.map(function (c) { return '<div class="row"><div class="grow"><b>' + esc(c.name) + '</b><div class="meta">Filed on ' + fmt(st.f[c.id], 1) + '</div></div><button class="btn sm" data-a="unmark" data-id="' + c.id + '">Undo</button></div>'; }).join('') + '</div>';
+  return h;
+}
+
+/* ---------- Staff ---------- */
+function staffView() {
+  var acc = FBM && ROLE === 'admin' ? accessView() : '';
+  if (!S.staff.length) return acc + emptyBox('staff', 'No staff added yet. Tap + Staff to add someone, then assign work to them.');
+  return acc + S.staff.slice().sort(byName).map(function (s) {
+    var open = S.tasks.filter(function (x) { return x.sid === s.id && x.st !== 'done'; }), late = open.filter(function (x) { return x.due && x.due < today(); }).length, w = wa(s.phone);
+    return '<div class="card"><div class="top"><div class="grow"><b>' + esc(s.name) + '</b><div class="meta">' + esc(s.role || 'No role') + (s.phone ? ' · ' + esc(s.phone) : '') + '</div></div><div class="amt"><span class="tag' + (late ? ' bad' : '') + '">' + open.length + ' open' + (late ? ', ' + late + ' late' : '') + '</span></div></div><div class="acts">' + (w ? '<a class="btn" target="_blank" rel="noopener" href="' + esc(w) + '">WhatsApp</a>' : '') + '<button class="btn" data-a="staffWork" data-id="' + s.id + '">See work</button><button class="btn" data-a="editStaff" data-id="' + s.id + '">Edit</button></div></div>';
+  }).join('');
+}
+
+/* ================= sheets (forms) ================= */
+var SHEETFOCUS = null;
+function sheet(title, html) {
+  if ($('#sheet').hidden) { SHEETFOCUS = document.activeElement; hPush(); }
+  $('#shT').textContent = title; $('#shB').innerHTML = html; $('#sheet').hidden = false; document.body.classList.add('lock');
+  $('#shB').scrollTop = 0;
+  if (window.matchMedia && matchMedia('(pointer:fine)').matches) { var f = $('#shB input:not([type=hidden]):not([type=checkbox]),#shB select,#shB textarea'); if (f) try { f.focus({ preventScroll: true }); } catch (e) {} }
+}
+function closeSheet(fromBack) {
+  if ($('#sheet').hidden) return;
+  $('#sheet').hidden = true; $('#shB').innerHTML = ''; document.body.classList.remove('lock');
+  if (SHEETFOCUS && document.body.contains(SHEETFOCUS)) try { SHEETFOCUS.focus({ preventScroll: true }); } catch (e) {}
+  if (fromBack !== true) hBack();
+}
+/* phone and browser Back closes the open form or page instead of leaving Office Desk */
+var HDEPTH = 0, HSKIP = 0, HQ = [], DSTACK = [];
+function hPush() { try { history.pushState({ od: 1 }, ''); HDEPTH++; } catch (e) {} }
+function hFlush() { HSKIP = 0; var q = HQ; HQ = []; q.forEach(function (f) { f(); }); }
+function hBack() { if (HDEPTH > 0) { HDEPTH--; HSKIP++; try { history.back(); } catch (e) { HSKIP--; } setTimeout(function () { if (HSKIP) hFlush(); }, 700); } }
+function hThen(fn) { if (HSKIP > 0) HQ.push(fn); else fn(); }
+function hUnwind() { if (HDEPTH > 0) { var n = HDEPTH; HDEPTH = 0; HSKIP++; try { history.go(-n); } catch (e) { HSKIP--; } setTimeout(function () { if (HSKIP) hFlush(); }, 700); } DSTACK = []; }
+window.addEventListener('popstate', function () {
+  if (HSKIP > 0) { HSKIP--; if (!HSKIP) hFlush(); return; }
+  if (HDEPTH > 0) HDEPTH--;
+  if (!$('#sheet').hidden) { closeSheet(true); return; }
+  if (V.d) { V.d = DSTACK.pop() || null; render(true); window.scrollTo(0, 0); }
+});
+function leaveDetail(id) { hThen(function () { if (V.d && V.d.id === id) { V.d = DSTACK.pop() || null; hBack(); } render(true); }); }
+function fld(id, label, input, hint) { return '<label class="fld" for="' + id + '"><span>' + label + '</span>' + input + (hint ? '<small>' + hint + '</small>' : '') + '</label>'; }
+function inp(id, v, extra) { return '<input id="' + id + '" value="' + esc(v == null ? '' : v) + '" ' + (extra || '') + '>'; }
+function ferr(msg, focusId) { var e = $('#ferr'); if (e) e.textContent = msg; if (focusId) { var f = document.getElementById(focusId); if (f) f.focus(); } return false; }
+function opts(list, cur, ph) { return (ph != null ? '<option value="">' + esc(ph) + '</option>' : '') + list.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (String(o[0]) === String(cur) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join(''); }
+function stateOpts(cur) { return opts(Object.keys(STATES).filter(function (k) { return k !== '25'; }).sort(function (a, b) { return STATES[a].localeCompare(STATES[b]); }).map(function (k) { return [k, STATES[k] + ' (' + k + ')']; }), cur, 'Not set'); }
+function clientOpts(cur) { var L = S.clients.slice().sort(byName).map(function (c) { return [c.id, c.name]; }); return opts(L, cur, 'Choose client'); }
+function ask(title, msg, ok, fn) {
+  sheet(title, '<p>' + esc(msg) + '</p><div class="sacts"><button class="btn" type="button" data-a="closeSheet">Cancel</button><button class="btn pri" type="button" data-a="confirmYes">' + esc(ok) + '</button></div>');
+  ASK = fn;
+}
+var ASK = null;
+
+function sheetClient(id) {
+  var c = id ? client(id) : null, v = c || { name: '', phone: '', email: '', gstin: '', pan: '', state: '', addr: '', notes: '' };
+  sheet(c ? 'Edit client' : 'New client', '<form data-f="client" data-id="' + esc(id || '') + '" novalidate>' +
+    fld('f_name', 'Client name *', inp('f_name', v.name, 'maxlength="120" autocomplete="off"')) +
+    '<div class="two">' + fld('f_phone', 'Mobile', inp('f_phone', v.phone, 'inputmode="tel" maxlength="30" autocomplete="off"')) + fld('f_email', 'Email', inp('f_email', v.email, 'type="email" maxlength="120" autocomplete="off"')) + '</div>' +
+    '<div class="two">' + fld('f_gstin', 'GSTIN', inp('f_gstin', v.gstin, 'maxlength="15" autocapitalize="characters" autocomplete="off" spellcheck="false" data-i="gstFill"')) + fld('f_pan', 'PAN', inp('f_pan', v.pan, 'maxlength="10" autocapitalize="characters" autocomplete="off" spellcheck="false"')) + '</div>' +
+    fld('f_state', 'State', '<select id="f_state">' + stateOpts(v.state) + '</select>', 'Filled from the GSTIN. Decides CGST+SGST or IGST on invoices.') +
+    fld('f_addr', 'Address', '<textarea id="f_addr" rows="2" maxlength="400">' + esc(v.addr) + '</textarea>') +
+    fld('f_notes', 'Notes', '<textarea id="f_notes" rows="2" maxlength="1000">' + esc(v.notes) + '</textarea>', 'Staff can see these notes.') +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (c ? 'Save changes' : 'Add client') + '</button>' + (c && ROLE === 'admin' ? '<button class="btn del" type="button" data-a="delClient" data-id="' + c.id + '">Delete client</button>' : '') + '</div></form>');
+}
+function sheetStaff(id) {
+  var s = id ? staffOf(id) : null, v = s || { name: '', role: '', phone: '' };
+  sheet(s ? 'Edit staff' : 'New staff', '<form data-f="staff" data-id="' + esc(id || '') + '" novalidate>' + fld('s_name', 'Name *', inp('s_name', v.name, 'maxlength="80" autocomplete="off"')) +
+    '<div class="two">' + fld('s_role', 'Role', inp('s_role', v.role, 'maxlength="80" placeholder="Article clerk" autocomplete="off"')) + fld('s_phone', 'Mobile', inp('s_phone', v.phone, 'inputmode="tel" maxlength="30" autocomplete="off"')) + '</div>' +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (s ? 'Save changes' : 'Add staff') + '</button>' + (s ? '<button class="btn del" type="button" data-a="delStaff" data-id="' + s.id + '">Delete</button>' : '') + '</div></form>');
+}
+function sheetTask(id, cid) {
+  var x = id ? find('tasks', id) : null, v = x || { title: '', cid: cid || '', sid: F.tstaff && F.tstaff !== '-' ? F.tstaff : '', due: '', st: 'todo', note: '' };
+  var cOpts = clientOpts(v.cid); if (v.cid && !client(v.cid)) cOpts += '<option value="' + esc(v.cid) + '" selected>' + esc(cn(v)) + '</option>';
+  sheet(x ? 'Edit work' : 'New work', '<form data-f="task" data-id="' + esc(id || '') + '" novalidate>' + fld('t_title', 'Work to do *', inp('t_title', v.title, 'maxlength="200" placeholder="GSTR-3B for Sep" autocomplete="off"')) +
+    '<div class="two">' + fld('t_cid', 'Client', '<select id="t_cid">' + cOpts.replace('>Choose client<', '>No client<') + '</select>') + fld('t_sid', 'Assign to', '<select id="t_sid">' + opts(S.staff.slice().sort(byName).map(function (s) { return [s.id, s.name]; }), v.sid, 'Unassigned') + '</select>') + '</div>' +
+    '<div class="two">' + fld('t_due', 'Last date', '<input id="t_due" type="date" value="' + esc(v.due) + '">') + (x ? fld('t_st', 'Status', '<select id="t_st">' + opts([['todo', 'To do'], ['doing', 'In progress'], ['done', 'Done']], v.st) + '</select>') : '') + '</div>' +
+    fld('t_note', 'Notes', '<textarea id="t_note" rows="2" maxlength="1000">' + esc(v.note) + '</textarea>') +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (x ? 'Save changes' : 'Add work') + '</button>' + (x && ROLE === 'admin' ? '<button class="btn del" type="button" data-a="delTask" data-id="' + x.id + '">Delete</button>' : '') + '</div></form>');
+}
+function sheetInv(id, cid) {
+  var p = id ? find('pay', id) : null, t = today();
+  var v = p || { cid: cid || '', no: nextNo(t), date: t, due: '', desc: S.set.desc || 'Professional fees', sac: S.set.sac, tx: '', rate: hasGst() ? S.set.rate : 0, note: '' };
+  var cOpts = clientOpts(v.cid); if (p && p.cid && !client(p.cid)) cOpts += '<option value="' + esc(p.cid) + '" selected>' + esc(cn(p)) + '</option>';
+  var gstSel = hasGst() ? '<select id="i_rate" data-c="invCalc">' + opts([[0, 'No GST'], [5, 'GST 5%'], [18, 'GST 18%']].concat([12, 28, 40].indexOf(v.rate) > -1 ? [[v.rate, 'GST ' + v.rate + '%']] : []), v.rate) + '</select>' : '<select id="i_rate" disabled><option value="0">No GST</option></select>';
+  sheet(p ? 'Edit invoice' : 'New invoice', '<form data-f="inv" data-id="' + esc(id || '') + '" data-auto="' + (p ? '' : esc(v.no)) + '" novalidate>' +
+    fld('i_cid', 'Client *', '<select id="i_cid" data-c="invCalc">' + cOpts + '</select>') +
+    '<div class="two">' + fld('i_no', 'Invoice no. *', inp('i_no', v.no, 'maxlength="16" autocomplete="off" spellcheck="false"')) + fld('i_date', 'Invoice date *', '<input id="i_date" type="date" value="' + esc(v.date) + '" data-c="invDate">') + '</div>' +
+    '<div class="two">' + fld('i_tx', 'Fees ₹ (before GST) *', inp('i_tx', v.tx === '' ? '' : v.tx, 'inputmode="decimal" autocomplete="off" data-i="invCalc"')) + fld('i_rate', 'GST', gstSel, hasGst() ? '' : 'Add your GSTIN in Settings to charge GST.') + '</div>' +
+    '<div class="calc" id="calc" aria-live="polite"></div>' +
+    fld('i_desc', 'Description *', inp('i_desc', v.desc, 'maxlength="300" autocomplete="off"')) +
+    '<div class="two">' + fld('i_sac', 'SAC code', inp('i_sac', v.sac, 'inputmode="numeric" maxlength="8" placeholder="998222" autocomplete="off"')) + fld('i_due', 'Due date', '<input id="i_due" type="date" value="' + esc(v.due) + '">', 'Leave empty if none.') + '</div>' +
+    fld('i_note', 'Note on invoice', inp('i_note', v.note, 'maxlength="300" placeholder="Fees for April to June" autocomplete="off"')) +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (p ? 'Save changes' : 'Make invoice') + '</button>' + (p ? '<button class="btn del" type="button" data-a="delInv" data-id="' + p.id + '">Delete invoice</button>' : '') + '</div></form>');
+  invCalc();
+}
+function invCalc() {
+  var box = $('#calc'); if (!box) return;
+  var tx = r2(num(val('i_tx'))), rate = +val('i_rate') || 0, c = client(val('i_cid'));
+  if (!(tx > 0)) { box.innerHTML = '<div><span>Total</span><span>Enter the fees</span></div>'; return; }
+  var g = gstSplit(tx, rate, c), tot = r2(tx + g.cgst + g.sgst + g.igst);
+  box.innerHTML = '<div><span>Fees</span><span>' + inr(tx) + '</span></div>' + (g.cgst ? '<div><span>CGST ' + rate / 2 + '% + SGST ' + rate / 2 + '%</span><span>' + inr(r2(g.cgst + g.sgst)) + '</span></div>' : '') + (g.igst ? '<div><span>IGST ' + rate + '% (other state)</span><span>' + inr(g.igst) + '</span></div>' : '') + '<div class="t"><span>Invoice total</span><span>' + inr(tot) + '</span></div>';
+}
+function payForm(kind, id, info, list) {
+  var bal = info.bal, t = today(), isInv = kind === 'rcv';
+  return (bal > 0 ? '<form data-f="' + kind + '" data-id="' + esc(id) + '" novalidate><div class="two">' +
+    fld('r_amt', isInv ? 'Amount received ₹' : 'Amount paid ₹', inp('r_amt', bal, 'inputmode="decimal" autocomplete="off"')) + fld('r_tds', isInv ? 'TDS deducted by client ₹' : 'TDS you deducted ₹', inp('r_tds', 0, 'inputmode="decimal" autocomplete="off"')) + '</div>' +
+    (isInv ? '<div class="acts" style="margin:-2px 0 10px"><button class="btn sm" type="button" data-a="tds10" data-id="' + esc(id) + '">Client cut 10% TDS on fees</button></div>' : '') +
+    '<div class="two">' + fld('r_date', 'Date', '<input id="r_date" type="date" value="' + t + '" max="' + t + '">') + fld('r_mode', 'Mode', '<select id="r_mode">' + opts(MODES.map(function (m) { return [m, m]; }), 'UPI') + '</select>') + '</div>' +
+    fld('r_ref', 'Reference', inp('r_ref', '', 'maxlength="60" placeholder="UTR or cheque no." autocomplete="off"')) +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Save payment</button></div></form>' : '<p class="ok"><b>Fully paid.</b></p>') +
+    (list.length ? '<h4>Payments recorded</h4>' + rcvList(list, { a: isInv ? 'delRcv' : 'delVpay', id: id }) : '');
+}
+function sheetRcv(id) {
+  var p = find('pay', id); if (!p) return; var pi = pinfo(p);
+  sheet('Payment for ' + (p.no || 'invoice'), '<div class="sum">' + esc(cn(p)) + '<br>Total ' + inr(p.amt) + ' · Received ' + inr(pi.rec) + (pi.tds ? ' · TDS ' + inr(pi.tds) : '') + '<br><b>Balance ' + inr(pi.bal) + '</b></div>' + payForm('rcv', id, pi, p.rcv));
+}
+function sheetBill(id) {
+  var x = id ? find('vp', id) : null, t = today(), v = x || { party: '', bill: '', date: t, due: '', amt: '', rem: '' };
+  var parties = {}; S.vp.forEach(function (y) { parties[y.party] = 1; });
+  sheet(x ? 'Edit bill' : 'New vendor bill', '<form data-f="bill" data-id="' + esc(id || '') + '" novalidate>' + fld('b_party', 'Party / vendor *', inp('b_party', v.party, 'list="b_list" maxlength="120" autocomplete="off"') + '<datalist id="b_list">' + Object.keys(parties).sort().map(function (p) { return '<option value="' + esc(p) + '">'; }).join('') + '</datalist>') +
+    '<div class="two">' + fld('b_amt', 'Bill amount ₹ *', inp('b_amt', v.amt, 'inputmode="decimal" autocomplete="off"')) + fld('b_bill', 'Bill no.', inp('b_bill', v.bill, 'maxlength="40" autocomplete="off"')) + '</div>' +
+    '<div class="two">' + fld('b_date', 'Bill date *', '<input id="b_date" type="date" value="' + esc(v.date) + '">') + fld('b_due', 'Pay by', '<input id="b_due" type="date" value="' + esc(v.due) + '">') + '</div>' +
+    fld('b_rem', 'Remarks', inp('b_rem', v.rem, 'maxlength="500" autocomplete="off"')) +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (x ? 'Save changes' : 'Add bill') + '</button>' + (x ? '<button class="btn del" type="button" data-a="delBill" data-id="' + x.id + '">Delete bill</button>' : '') + '</div></form>');
+}
+function sheetVpay(id) {
+  var x = find('vp', id); if (!x) return; var vi = vinfo(x);
+  sheet('Payment to ' + x.party, '<div class="sum">' + (x.bill ? 'Bill ' + esc(x.bill) + ' · ' : '') + fmt(x.date, 1) + '<br>Bill ' + inr(x.amt) + ' · Paid ' + inr(vi.paid) + (vi.tds ? ' · TDS ' + inr(vi.tds) : '') + '<br><b>Balance ' + inr(vi.bal) + '</b></div>' + payForm('vpay', id, { bal: vi.bal }, x.pays));
+}
+function sheetComp(id) {
+  var k = id ? comp(id) : null, v = k || { n: '', f: 'M', d: 20, m: 7, o: 1, cl: [] };
+  var sel = {}; v.cl.forEach(function (c) { sel[c] = 1; });
+  var list = S.clients.slice().sort(byName).map(function (c) { return '<label class="ck" data-n="' + esc(c.name.toLowerCase()) + '"><input type="checkbox" name="kc" value="' + c.id + '"' + (sel[c.id] ? ' checked' : '') + '><span>' + esc(c.name) + '</span></label>'; }).join('');
+  sheet(k ? 'Edit compliance' : 'New compliance', '<form data-f="comp" data-id="' + esc(id || '') + '" novalidate>' + fld('k_n', 'Name *', inp('k_n', v.n, 'maxlength="80" placeholder="Professional tax" autocomplete="off"')) +
+    '<div class="two">' + fld('k_f', 'How often', '<select id="k_f" data-c="kf">' + opts([['M', 'Every month'], ['Q', 'Every quarter'], ['Y', 'Every year']], v.f) + '</select>') + fld('k_d', 'Due day', inp('k_d', v.d, 'type="number" min="1" max="31" inputmode="numeric"')) + '</div>' +
+    '<div id="k_mw"' + (v.f === 'Y' ? '' : ' hidden') + '>' + fld('k_m', 'Due month', '<select id="k_m">' + opts(MON.map(function (m, i) { return [i + 1, m]; }), v.m) + '</select>') + '</div>' +
+    '<div id="k_ow"' + (v.f === 'Q' ? '' : ' hidden') + '>' + fld('k_o', 'Due in', '<select id="k_o">' + opts([[1, 'The month after the quarter (TDS return, QRMP)'], [0, 'The last month of the quarter (advance tax)']], v.o) + '</select>') + '</div>' +
+    '<p class="meta" id="k_prev"></p>' +
+    '<h4>Clients (' + v.cl.filter(function (c) { return client(c); }).length + ' selected)</h4>' + (S.clients.length ? '<input type="search" id="k_q" placeholder="Search clients" data-i="kfilter" autocomplete="off" aria-label="Search clients"><div class="acts" style="margin:6px 0"><button class="btn sm" type="button" data-a="kall">Select shown</button><button class="btn sm" type="button" data-a="knone">Clear all</button></div><div class="cklist">' + list + '</div>' : '<p class="meta">Add clients first.</p>') +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (k ? 'Save changes' : 'Add compliance') + '</button>' + (k ? '<button class="btn del" type="button" data-a="delComp" data-id="' + k.id + '">Delete</button>' : '') + '</div></form>');
+  kPreview();
+}
+function kPreview() {
+  var e = $('#k_prev'); if (!e) return;
+  var f = val('k_f'), d = parseInt(val('k_d'), 10);
+  $('#k_mw').hidden = f !== 'Y'; $('#k_ow').hidden = f !== 'Q';
+  if (!(d >= 1 && d <= 31)) { e.textContent = ''; return; }
+  var k = { id: '_', f: f, d: d, m: +val('k_m') || 7, o: +val('k_o'), q4o: null, x: {} }, key = pUpcoming(k, today());
+  e.textContent = 'Next last date: ' + fmt(pDueStd(k, key), 1) + ' (for ' + pLabel(k, key) + ')';
+}
+function sheetPresets() {
+  var have = {}; S.comps.forEach(function (k) { have[k.id] = 1; have[k.n.toLowerCase()] = 1; });
+  var L = PRESETS.filter(function (p) { return !have[p.id] && !have[p.n.toLowerCase()]; });
+  sheet('Standard due dates', L.length ? '<form data-f="presets" novalidate><p class="meta">Pick what your office handles. You can change any date later.</p><div class="cklist" style="max-height:none">' + L.map(function (p) { var k = NORM.comps(Object.assign({}, p, { cl: [] })); return '<label class="ck"><input type="checkbox" name="pk" value="' + p.id + '"><span><b>' + esc(p.n) + '</b><br><span class="meta">' + esc(ruleText(k)) + (p.hint ? ' · ' + esc(p.hint) : '') + '</span></span></label>'; }).join('') + '</div><p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Add selected</button></div></form>' : '<p>All standard due dates are already added.</p>');
+}
+function sheetSettings() {
+  var s = S.set;
+  sheet('Firm details', '<form data-f="settings" novalidate><h4 style="margin-top:0">Your firm</h4>' + fld('g_name', 'Firm name *', inp('g_name', s.name, 'maxlength="120" autocomplete="organization"')) +
+    fld('g_addr', 'Address', '<textarea id="g_addr" rows="2" maxlength="400">' + esc(s.addr) + '</textarea>') +
+    '<div class="two">' + fld('g_gstin', 'GSTIN', inp('g_gstin', s.gstin, 'maxlength="15" autocapitalize="characters" spellcheck="false" autocomplete="off"')) + fld('g_pan', 'PAN', inp('g_pan', s.pan, 'maxlength="10" autocapitalize="characters" spellcheck="false" autocomplete="off"')) + '</div>' +
+    fld('g_state', 'State', '<select id="g_state">' + stateOpts(s.state) + '</select>') +
+    '<div class="two">' + fld('g_phone', 'Phone', inp('g_phone', s.phone, 'inputmode="tel" maxlength="30"')) + fld('g_email', 'Email', inp('g_email', s.email, 'type="email" maxlength="120"')) + '</div>' +
+    '<h4>Invoices</h4><div class="two">' + fld('g_prefix', 'Invoice no. prefix', inp('g_prefix', s.prefix, 'maxlength="6" autocapitalize="characters" spellcheck="false"'), 'Numbers look like ' + esc((s.prefix || 'INV') + '/' + fyShort(fyStart(today())) + '/001')) + fld('g_rate', 'Default GST', '<select id="g_rate">' + opts([[18, 'GST 18%'], [5, 'GST 5%'], [0, 'No GST']], s.rate) + '</select>') + '</div>' +
+    '<div class="two">' + fld('g_desc', 'Default description', inp('g_desc', s.desc, 'maxlength="120"')) + fld('g_sac', 'Default SAC', inp('g_sac', s.sac, 'inputmode="numeric" maxlength="8" placeholder="998222"')) + '</div>' +
+    '<p class="meta" style="margin-top:-4px">Common SAC codes: 998221 audit, 998222 accounting and bookkeeping, 998231 business tax consulting, 998232 individual tax returns.</p>' +
+    fld('g_terms', 'Note printed on every invoice', inp('g_terms', s.terms, 'maxlength="500" placeholder="Payment due within 15 days"')) +
+    '<h4>Bank and UPI (printed on invoices)</h4><div class="two">' + fld('g_bank', 'Bank and branch', inp('g_bank', s.bank, 'maxlength="120"')) + fld('g_acname', 'Account name', inp('g_acname', s.acname, 'maxlength="120"')) + '</div>' +
+    '<div class="two">' + fld('g_acno', 'Account no.', inp('g_acno', s.acno, 'inputmode="numeric" maxlength="30" autocomplete="off"')) + fld('g_ifsc', 'IFSC', inp('g_ifsc', s.ifsc, 'maxlength="11" autocapitalize="characters" spellcheck="false"')) + '</div>' +
+    fld('g_upi', 'UPI ID', inp('g_upi', s.upi, 'maxlength="80" placeholder="yourfirm@okhdfcbank" autocapitalize="none" spellcheck="false"'), 'Adds a scan-to-pay QR code with the exact amount on invoices.') +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Save firm details</button></div></form>');
+}
+function sheetImport() {
+  sheet('Import backup', '<p>Choose a backup file downloaded from Office Desk (old or new version). Records are added or updated; nothing is deleted.</p><label class="btn pri" for="imp_file">Choose backup file</label><input type="file" id="imp_file" accept=".json,application/json" data-c="impFile" hidden><div id="imp_info" style="margin-top:12px"></div>');
+}
+function sheetExports() {
+  sheet('Excel files', '<p class="meta">Each file opens in Excel or Google Sheets.</p><div class="acts" style="flex-direction:column;align-items:stretch">' +
+    [['clients', 'Clients with amount due'], ['invoices', 'Invoices with GST and balance'], ['receipts', 'Payments received (with TDS)'], ['bills', 'Vendor bills'], ['vpays', 'Vendor payments (with TDS)'], ['work', 'Work list'], ['comp', 'Compliance status (current periods)']].map(function (e) { return '<button class="btn" data-a="csv" data-id="' + e[0] + '">' + e[1] + '</button>'; }).join('') + '</div>');
+}
+
+/* ================= form handlers ================= */
+var FORMS = {
+  client: function (f) {
+    var id = f.dataset.id, g = val('f_gstin').toUpperCase().replace(/\s/g, ''), pan = val('f_pan').toUpperCase().replace(/\s/g, ''), old = id ? client(id) : null;
+    var o = { id: id || uid(), name: val('f_name'), phone: val('f_phone'), email: val('f_email'), gstin: g, pan: pan, state: val('f_state'), addr: val('f_addr'), notes: val('f_notes'), ct: old ? old.ct : new Date().toISOString() };
+    if (!o.name) return ferr('Enter the client name.', 'f_name');
+    if (o.phone && !phoneOk(o.phone)) return ferr('Mobile number should have 10 digits. You can add +91 in front.', 'f_phone');
+    if (o.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(o.email)) return ferr('The email address looks incomplete.', 'f_email');
+    if (g && !GST_RE.test(g)) return ferr('GSTIN should be 15 characters, like 27ABCDE1234F1Z5.', 'f_gstin');
+    if (g && !gstOk(g)) return ferr('This GSTIN fails its check digit, so one character is probably mistyped.', 'f_gstin');
+    if (pan && !PAN_RE.test(pan)) return ferr('PAN should be 10 characters, like ABCDE1234F.', 'f_pan');
+    if (g && pan && g.slice(2, 12) !== pan) return ferr('This PAN does not match the GSTIN (characters 3 to 12 of the GSTIN).', 'f_pan');
+    if (g) { var dup = S.clients.filter(function (c) { return c.id !== o.id && c.gstin === g; })[0]; if (dup) return ferr('This GSTIN is already saved for ' + dup.name + '.', 'f_gstin'); }
+    var same = S.clients.filter(function (c) { return c.id !== o.id && c.name.toLowerCase() === o.name.toLowerCase(); })[0];
+    if (same && f.dataset.dup !== '1') { f.dataset.dup = '1'; return ferr('A client named ' + same.name + ' already exists. Tap the button again to save anyway.'); }
+    put('clients', o); closeSheet(); toast(old ? 'Client updated' : 'Client added');
+  },
+  staff: function (f) {
+    var id = f.dataset.id, o = { id: id || uid(), name: val('s_name'), role: val('s_role'), phone: val('s_phone') };
+    if (!o.name) return ferr('Enter the name.', 's_name');
+    if (o.phone && !phoneOk(o.phone)) return ferr('Mobile number should have 10 digits.', 's_phone');
+    put('staff', o); closeSheet(); toast(id ? 'Staff updated' : 'Staff added');
+  },
+  task: function (f) {
+    var id = f.dataset.id, old = id ? find('tasks', id) : null, due = val('t_due'), st = old ? (val('t_st') || old.st) : 'todo', cid = val('t_cid'), c = client(cid);
+    var o = { id: id || uid(), title: val('t_title'), cid: cid, cname: c ? c.name : (old && old.cid === cid ? old.cname : ''), sid: val('t_sid'), due: due, st: st, done: st === 'done' ? (old && old.done ? old.done : today()) : '', note: val('t_note'), ct: old ? old.ct : new Date().toISOString() };
+    if (!o.title) return ferr('Write what needs to be done.', 't_title');
+    if (due && !okDate(due)) return ferr('Choose a valid date.', 't_due');
+    put('tasks', o); closeSheet(); toast(old ? 'Work updated' : 'Work added');
+  },
+  inv: function (f) {
+    var id = f.dataset.id, old = id ? find('pay', id) : null, cid = val('i_cid'), c = client(cid), no = val('i_no'), date = val('i_date'), due = val('i_due');
+    if (!cid) return ferr('Choose the client.', 'i_cid');
+    if (!no) return ferr('Enter the invoice number.', 'i_no');
+    if (no.length > 16) return ferr('Invoice number can have at most 16 characters (GST rule).', 'i_no');
+    if (!/^[A-Za-z0-9\/-]+$/.test(no)) return ferr('Use only letters, numbers, / and - in the invoice number.', 'i_no');
+    if (!okDate(date)) return ferr('Choose the invoice date.', 'i_date');
+    var dupe = noTaken(no, date, id); if (dupe) return ferr('Invoice number ' + no + ' is already used in FY ' + fyLabel(fyStart(date)) + ' (' + cn(dupe) + '). The next free number is ' + nextNo(date, id) + '.', 'i_no');
+    if (due && !okDate(due)) return ferr('Choose a valid due date.', 'i_due');
+    if (due && due < date) return ferr('Due date cannot be before the invoice date.', 'i_due');
+    var tx = r2(num(val('i_tx'))); if (!(tx > 0)) return ferr('Enter the fees (more than 0). Only numbers, like 10000 or 10000.50.', 'i_tx');
+    if (tx > 1e11) return ferr('This amount is too large.', 'i_tx');
+    var desc = val('i_desc'); if (!desc) return ferr('Write a description, like Professional fees.', 'i_desc');
+    var sac = val('i_sac'); if (sac && !/^\d{4,8}$/.test(sac)) return ferr('SAC code should be 4 to 8 digits, like 998222.', 'i_sac');
+    var rate, g;
+    if (hasGst()) { rate = +val('i_rate') || 0; g = gstSplit(tx, rate, c); }
+    else if (old && old.rate) { rate = old.rate; g = old.igst > 0 ? { cgst: 0, sgst: 0, igst: r2(tx * rate / 100) } : { cgst: r2(tx * rate / 200), sgst: r2(tx * rate / 200), igst: 0 }; }
+    else { rate = 0; g = { cgst: 0, sgst: 0, igst: 0 }; }
+    var amt = r2(tx + g.cgst + g.sgst + g.igst), rcv = old ? old.rcv : [], got = sum(rcv, function (r) { return r.amt + r.tds; });
+    if (got > amt + 0.009) return ferr('The total cannot be less than ' + inr(got) + ' already received. Delete a payment first.', 'i_tx');
+    var o = { id: id || uid(), cid: cid, cname: c ? c.name : (old ? old.cname : ''), no: no, date: date, due: due, desc: desc, sac: sac, tx: tx, rate: rate, cgst: g.cgst, sgst: g.sgst, igst: g.igst, amt: amt, rcv: rcv, note: val('i_note'), ct: old ? old.ct : new Date().toISOString() };
+    put('pay', o); closeSheet(); toast(old ? 'Invoice updated' : 'Invoice ' + no + ' made');
+    if (!old) openD({ k: 'inv', id: o.id });
+  },
+  rcv: function (f) { savePayment(f, 'pay', 'rcv'); },
+  vpay: function (f) { savePayment(f, 'vp', 'pays'); },
+  bill: function (f) {
+    var id = f.dataset.id, old = id ? find('vp', id) : null, amt = r2(num(val('b_amt'))), date = val('b_date'), due = val('b_due'), party = val('b_party').replace(/\s+/g, ' ');
+    if (!party) return ferr('Enter the party name.', 'b_party');
+    if (!(amt > 0)) return ferr('Enter the bill amount (more than 0).', 'b_amt');
+    if (!okDate(date)) return ferr('Choose the bill date.', 'b_date');
+    if (due && !okDate(due)) return ferr('Choose a valid date.', 'b_due');
+    if (due && due < date) return ferr('Pay-by date cannot be before the bill date.', 'b_due');
+    var same = S.vp.filter(function (x) { return x.party.toLowerCase() === party.toLowerCase(); })[0]; if (same) party = same.party;
+    var bill = val('b_bill');
+    if (bill && f.dataset.dup !== '1') { var d2 = S.vp.filter(function (x) { return x.id !== id && x.party.toLowerCase() === party.toLowerCase() && x.bill.toLowerCase() === bill.toLowerCase(); })[0]; if (d2) { f.dataset.dup = '1'; return ferr('Bill ' + bill + ' from ' + party + ' is already added. Tap the button again to add it anyway.', 'b_bill'); } }
+    var pays = old ? old.pays : [], got = sum(pays, function (r) { return r.amt + r.tds; });
+    if (got > amt + 0.009) return ferr('The bill cannot be less than ' + inr(got) + ' already paid.', 'b_amt');
+    put('vp', { id: id || uid(), party: party, bill: bill, date: date, due: due, amt: amt, rem: val('b_rem'), pays: pays, ct: old ? old.ct : new Date().toISOString() });
+    closeSheet(); toast(old ? 'Bill updated' : 'Bill added');
+  },
+  comp: function (f) {
+    var id = f.dataset.id, old = id ? comp(id) : null, n = val('k_n'), fq = val('k_f'), d = parseInt(val('k_d'), 10);
+    if (!n) return ferr('Enter a name, like GSTR-3B.', 'k_n');
+    if (!(d >= 1 && d <= 31) || String(d) !== val('k_d').replace(/^0+/, '')) return ferr('Due day should be a number from 1 to 31.', 'k_d');
+    var cl = $$('input[name="kc"]:checked').map(function (x) { return x.value; }), since = {}, t = today();
+    cl.forEach(function (c) { if (old && old.cl.indexOf(c) > -1) { if (old.since[c]) since[c] = old.since[c]; } else since[c] = t; });
+    var o = { id: id || uid(), n: n, f: fq, d: d, m: +val('k_m') || 7, o: +val('k_o') === 0 ? 0 : 1, q4o: old && old.f === fq ? old.q4o : null, x: old && old.f === fq && old.d === d ? old.x : {}, cl: cl, since: since, ct: old ? old.ct : t };
+    put('comps', o); closeSheet(); toast(old ? 'Compliance updated' : 'Compliance added');
+  },
+  pdue: function () {
+    var k = V.d && comp(V.d.id); if (!k) return closeSheet();
+    var key = V.d.p || pUpcoming(k, today()), d = val('p_due');
+    if (!okDate(d)) return ferr('Choose the new last date.', 'p_due');
+    V.d.p = key; putMarks(k.id + '_' + key, {}, d === pDueStd(k, key) ? '' : d);
+    closeSheet(); toast('Last date changed to ' + fmt(d, 1));
+  },
+  presets: function () {
+    var ids = $$('input[name="pk"]:checked').map(function (x) { return x.value; });
+    if (!ids.length) return ferr('Tick at least one.');
+    ids.forEach(function (i) { put('comps', Object.assign({}, PRESET[i], { cl: [], since: {}, ct: today() })); });
+    closeSheet(); toast(plural(ids.length, 'due date') + ' added. Now select clients in each.');
+  },
+  settings: function () {
+    var g = val('g_gstin').toUpperCase().replace(/\s/g, ''), pan = val('g_pan').toUpperCase(), ifsc = val('g_ifsc').toUpperCase(), upi = val('g_upi'), pre = val('g_prefix').toUpperCase();
+    if (!val('g_name')) return ferr('Enter your firm name.', 'g_name');
+    if (g && !GST_RE.test(g)) return ferr('GSTIN should be 15 characters, like 27ABCDE1234F1Z5.', 'g_gstin');
+    if (g && !gstOk(g)) return ferr('This GSTIN fails its check digit, so one character is probably mistyped.', 'g_gstin');
+    if (pan && !PAN_RE.test(pan)) return ferr('PAN should be 10 characters, like ABCDE1234F.', 'g_pan');
+    if (g && pan && g.slice(2, 12) !== pan) return ferr('This PAN does not match your GSTIN.', 'g_pan');
+    if (val('g_phone') && !phoneOk(val('g_phone'))) return ferr('Phone number should have 10 digits.', 'g_phone');
+    if (val('g_email') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val('g_email'))) return ferr('The email address looks incomplete.', 'g_email');
+    if (pre && !/^[A-Z0-9-]{1,6}$/.test(pre)) return ferr('Prefix can have up to 6 letters or numbers.', 'g_prefix');
+    if (val('g_sac') && !/^\d{4,8}$/.test(val('g_sac'))) return ferr('SAC code should be 4 to 8 digits.', 'g_sac');
+    if (ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) return ferr('IFSC should be 11 characters, like HDFC0001234.', 'g_ifsc');
+    if (upi && !/^[A-Za-z0-9._-]{2,256}@[A-Za-z]{2,64}$/.test(upi)) return ferr('UPI ID should look like name@bank.', 'g_upi');
+    putSet({ name: val('g_name'), addr: val('g_addr'), gstin: g, pan: pan || (g ? g.slice(2, 12) : ''), state: val('g_state'), phone: val('g_phone'), email: val('g_email'), prefix: pre || 'INV', rate: +val('g_rate'), desc: val('g_desc'), sac: val('g_sac'), terms: val('g_terms'), bank: val('g_bank'), acname: val('g_acname'), acno: val('g_acno').replace(/\s/g, ''), ifsc: ifsc, upi: upi });
+    closeSheet(); toast('Firm details saved');
+  }
+};
+function savePayment(f, t, field) {
+  var id = f.dataset.id, x = find(t, id); if (!x) return closeSheet();
+  var info = t === 'pay' ? pinfo(x) : vinfo(x), a = r2(num(val('r_amt') || '0')), tds = r2(num(val('r_tds') || '0')), date = val('r_date');
+  if (!(a >= 0) || isNaN(num(val('r_amt') || '0'))) return ferr('Enter the amount as a number, like 11800.', 'r_amt');
+  if (!(tds >= 0) || isNaN(num(val('r_tds') || '0'))) return ferr('Enter TDS as a number, or 0.', 'r_tds');
+  if (a + tds <= 0) return ferr('Enter the amount.', 'r_amt');
+  if (r2(a + tds) > r2(info.bal + 1)) return ferr('That is more than the balance of ' + inr(info.bal) + '. Check the amount and TDS.', 'r_amt');
+  if (!okDate(date)) return ferr('Choose the date.', 'r_date');
+  if (date > today()) return ferr('The date cannot be in the future.', 'r_date');
+  var rec = { id: uid(), amt: a, tds: tds, date: date, mode: val('r_mode'), ref: val('r_ref') }, o = Object.assign({}, x); o[field] = x[field].concat([rec]);
+  put(t, o); closeSheet();
+  var after = t === 'pay' ? pinfo(find('pay', id)) : vinfo(find('vp', id));
+  toast(after.bal <= 0 ? 'Payment saved. Fully paid.' : 'Payment saved. Balance ' + inr(after.bal));
+}
+
+/* ================= actions ================= */
+function go(tab) { hThen(function () { if (V.d) hUnwind(); V.tab = tab; V.d = null; DSTACK = []; lsSet('od_tab', tab); render(true); window.scrollTo(0, 0); }); }
+function openD(d) { hThen(function () { if (V.d) DSTACK.push(V.d); V.d = d; hPush(); render(true); window.scrollTo(0, 0); }); }
+var A = {
+  tab: function (id, el) { if (el.dataset.f) F.pay = el.dataset.f; go(id); },
+  back: function () { if (HDEPTH > 0 && $('#sheet').hidden) { try { history.back(); return; } catch (e) {} } V.d = DSTACK.pop() || null; render(true); window.scrollTo(0, 0); },
+  closeSheet: closeSheet,
+  confirmYes: function () { var fn = ASK; ASK = null; closeSheet(); if (fn) fn(); },
+  more: function (id) { F.more[id] = lim(id) + 100; render(); },
+  settings: function () { sheetSettings(); },
+  newClient: function () { sheetClient(null); }, editClient: function (id) { sheetClient(id); }, openClient: function (id) { openD({ k: 'client', id: id }); },
+  newStaff: function () { sheetStaff(null); }, editStaff: function (id) { sheetStaff(id); },
+  newTask: function (id) { sheetTask(null, id || ''); }, editTask: function (id) { sheetTask(id); },
+  newInv: function (id) { if (!S.clients.length) { toast('Add a client first.'); return; } sheetInv(null, id || ''); }, editInv: function (id) { sheetInv(id); }, openInv: function (id) { openD({ k: 'inv', id: id }); },
+  rcv: function (id) { sheetRcv(id); }, vpay: function (id) { sheetVpay(id); },
+  newBill: function () { sheetBill(null); }, editBill: function (id) { sheetBill(id); },
+  newComp: function () { sheetComp(null); }, editComp: function (id) { sheetComp(id); }, presets: sheetPresets,
+  openComp: function (id, el) { openD({ k: 'comp', id: id, p: el.dataset.k || '' }); },
+  fpay: function (id) { F.pay = id; F.more.pay = 0; render(); }, fvend: function (id) { F.vend = id; render(); },
+  tdone: function () { F.tdone = !F.tdone; render(); },
+  staffWork: function (id) { F.tstaff = id; go('tasks'); },
+  clientPaid: function (id) { var c = client(id); QS.pay = c ? c.name : ''; F.pay = 'paid'; go('pay'); },
+  copy: function (id) { var done = function () { toast('Number copied'); }; try { navigator.clipboard.writeText(id).then(done, function () { toast('Copy is blocked here. Press and hold the number to copy it.'); }); } catch (e) { toast('Copy is blocked here. Press and hold the number to copy it.'); } },
+  tds10: function (id) { var p = find('pay', id); if (!p) return; var pi = pinfo(p), t = r2(p.tx * 0.10); if (t > pi.bal) t = pi.bal; $('#r_tds').value = t; $('#r_amt').value = r2(pi.bal - t); },
+  delClient: function (id) {
+    var c = client(id); if (!c) return;
+    var ni = S.pay.filter(function (p) { return p.cid === id; }).length, nt = S.tasks.filter(function (x) { return x.cid === id; }).length;
+    ask('Delete ' + c.name + '?', (ni || nt ? 'Their ' + plural(ni, 'invoice') + ' and ' + plural(nt, 'work item') + ' stay, marked as a deleted client. ' : '') + 'This cannot be undone.', 'Delete client', function () {
+      S.pay.filter(function (p) { return p.cid === id && p.cname !== c.name; }).forEach(function (p) { put('pay', Object.assign({}, p, { cname: c.name })); });
+      S.tasks.filter(function (x) { return x.cid === id && x.cname !== c.name; }).forEach(function (x) { put('tasks', Object.assign({}, x, { cname: c.name })); });
+      S.comps.filter(function (k) { return k.cl.indexOf(id) > -1; }).forEach(function (k) { var s = Object.assign({}, k.since); delete s[id]; put('comps', Object.assign({}, k, { cl: k.cl.filter(function (z) { return z !== id; }), since: s })); });
+      remove('clients', id); toast('Client deleted'); leaveDetail(id);
+    });
+  },
+  delStaff: function (id) { var s = staffOf(id); if (!s) return; var n = S.tasks.filter(function (x) { return x.sid === id && x.st !== 'done'; }).length; ask('Delete ' + s.name + '?', (n ? plural(n, 'open work item') + ' assigned to them will show as Unassigned. ' : '') + 'This cannot be undone.', 'Delete staff', function () { remove('staff', id); if (F.tstaff === id) F.tstaff = ''; toast('Staff deleted'); }); },
+  delTask: function (id) { var x = find('tasks', id); if (!x) return; ask('Delete this work?', x.title + '. This cannot be undone.', 'Delete work', function () { remove('tasks', id); toast('Work deleted'); }); },
+  delInv: function (id) { var p = find('pay', id); if (!p) return; ask('Delete invoice ' + (p.no || '') + '?', inr(p.amt) + ' for ' + cn(p) + (p.rcv.length ? '. The ' + plural(p.rcv.length, 'payment') + ' recorded on it are deleted too' : '') + '. For a GST invoice already sent to the client, issue a credit note instead of deleting. This cannot be undone.', 'Delete invoice', function () { remove('pay', id); toast('Invoice deleted'); leaveDetail(id); }); },
+  delBill: function (id) { var x = find('vp', id); if (!x) return; ask('Delete this bill?', inr(x.amt) + ' from ' + x.party + '. This cannot be undone.', 'Delete bill', function () { remove('vp', id); toast('Bill deleted'); }); },
+  delComp: function (id) { var k = comp(id); if (!k) return; ask('Delete ' + k.n + '?', 'Its filing history is deleted too. This cannot be undone.', 'Delete', function () { remove('comps', id); Object.keys(S.marks).forEach(function (key) { if (key.indexOf(id + '_') === 0) removeMark(key); }); if (MODE !== 'db') saveLocal(); toast('Deleted'); leaveDetail(id); }); },
+  delRcv: function (id, el) { armed(el, function () { var p = find('pay', id); if (!p) return; put('pay', Object.assign({}, p, { rcv: p.rcv.filter(function (r) { return r.id !== el.dataset.r; }) })); toast('Payment deleted'); sheetRcv(id); }); },
+  delVpay: function (id, el) { armed(el, function () { var x = find('vp', id); if (!x) return; put('vp', Object.assign({}, x, { pays: x.pays.filter(function (r) { return r.id !== el.dataset.r; }) })); toast('Payment deleted'); sheetVpay(id); }); },
+  mark: function (cid) { var k = comp(V.d.id), key = V.d.p || pUpcoming(k, today()); var p = {}; p[cid] = today(); putMarks(k.id + '_' + key, p); },
+  markOne: function (kid, el) { var p = {}; p[el.dataset.c] = today(); putMarks(kid + '_' + el.dataset.k, p); toast('Marked filed'); },
+  unmark: function (cid) { var k = comp(V.d.id), key = V.d.p || pUpcoming(k, today()); var p = {}; p[cid] = null; putMarks(k.id + '_' + key, p); },
+  pall: function () { var k = comp(V.d.id), key = V.d.p || pUpcoming(k, today()), st = pState(k, key); ask('Mark all ' + st.pending.length + ' as filed?', pLabel(k, key) + ' · ' + k.n, 'Mark all filed', function () { var p = {}; st.pending.forEach(function (c) { p[c.id] = today(); }); putMarks(k.id + '_' + key, p); }); },
+  pnav: function (n) { var k = comp(V.d.id); if (!k) return; V.d.p = pShift(k, V.d.p || pUpcoming(k, today()), +n); render(); },
+  pdue: function () { var k = comp(V.d.id), key = V.d.p || pUpcoming(k, today()); sheet('Last date for ' + pLabel(k, key), '<form data-f="pdue" novalidate><p class="meta">' + esc(k.n) + '. Standard date: ' + fmt(pDueStd(k, key), 1) + '.</p>' + fld('p_due', 'Last date', '<input id="p_due" type="date" value="' + pDue(k, key) + '">') + '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Save date</button><button class="btn" type="button" data-a="pdueReset">Use standard date</button></div></form>'); },
+  pdueReset: function () { var k = comp(V.d.id), key = V.d.p || pUpcoming(k, today()); V.d.p = key; putMarks(k.id + '_' + key, {}, ''); closeSheet(); toast('Standard date restored'); },
+  kall: function () { $$('.ck').forEach(function (l) { if (!l.hidden) l.querySelector('input').checked = true; }); },
+  knone: function () { $$('input[name="kc"]').forEach(function (i) { i.checked = false; }); },
+  backup: function () { saveFile('office-desk-backup-' + today() + '.json', JSON.stringify(backupObj(S), null, 1), 'application/json').then(function (ok) { if (ok) { lsSet('od_lastbackup', today()); render(); } }); },
+  backupLocal: function () { if (LOCALONLY) saveFile('office-desk-this-device-' + today() + '.json', JSON.stringify(backupObj(LOCALONLY), null, 1), 'application/json'); },
+  uploadLocal: function () { if (!LOCALONLY) return; var m = LOCALONLY; importInto(m, function (ok) { if (ok) { lsSet(LKEY + '_uploaded', lsGet(LKEY) || ''); try { localStorage.removeItem(LKEY); } catch (e) {} LOCALONLY = null; render(); } }); },
+  import: function () { sheetImport(); }, exports: function () { sheetExports(); },
+  doImport: function () { if (PENDING_IMPORT) importInto(PENDING_IMPORT, function () {}); },
+  csv: function (id) { exportCsv(id); },
+  pdf: function (id) { var p = find('pay', id); if (p) makePdf(p); }
+};
+function armed(el, fn) { if (el.dataset.armed) { fn(); return; } el.dataset.armed = '1'; var t = el.textContent; el.textContent = 'Tap again to delete'; setTimeout(function () { if (el.isConnected) { delete el.dataset.armed; el.textContent = t; } }, 3500); }
+var CHANGE = {
+  taskSt: function (id, el) { var x = find('tasks', id); if (!x) return; var st = el.value; put('tasks', Object.assign({}, x, { st: st, done: st === 'done' ? (x.done || today()) : '' })); if (st === 'done') toast('Marked done'); el.blur(); },
+  tstaff: function (id, el) { F.tstaff = el.value; el.blur(); render(); },
+  invCalc: function () { invCalc(); },
+  invDate: function (id, el) { var f = el.form, no = $('#i_no'); if (f && f.dataset.auto && no && no.value === f.dataset.auto && okDate(el.value)) { no.value = nextNo(el.value, f.dataset.id); f.dataset.auto = no.value; } },
+  kf: function () { kPreview(); },
+  impFile: function (id, el) { readImport(el.files && el.files[0]); }
+};
+var INPUT = {
+  search: function (id, el) { QS[V.tab] = el.value; F.more[V.tab] = 0; clearTimeout(INPUT.t); INPUT.t = setTimeout(render, 120); },
+  invCalc: function () { invCalc(); },
+  gstFill: function (id, el) { var g = el.value.toUpperCase().replace(/\s/g, ''); if (GST_RE.test(g)) { var p = $('#f_pan'), s = $('#f_state'); if (p && !p.value) p.value = g.slice(2, 12); if (s && STATES[g.slice(0, 2)]) s.value = g.slice(0, 2); } },
+  kfilter: function (id, el) { var q = el.value.toLowerCase(); $$('.ck').forEach(function (l) { l.hidden = q && l.dataset.n.indexOf(q) < 0; }); }
+};
+document.addEventListener('click', function (e) {
+  var el = e.target.closest && e.target.closest('[data-a]'); if (!el) return;
+  var f = A[el.dataset.a]; if (!f) return;
+  if (el.tagName !== 'A') e.preventDefault();
+  f(el.dataset.id || '', el, e);
+});
+document.addEventListener('change', function (e) { var el = e.target; if (el.dataset && CHANGE[el.dataset.c]) CHANGE[el.dataset.c](el.dataset.id || '', el, e); if (el.id === 'k_d' || el.id === 'k_m' || el.id === 'k_o') kPreview(); });
+document.addEventListener('input', function (e) { var el = e.target; if (el.dataset && INPUT[el.dataset.i]) INPUT[el.dataset.i](el.dataset.id || '', el, e); if (el.id === 'k_d') kPreview(); });
+document.addEventListener('submit', function (e) {
+  var f = e.target; e.preventDefault();
+  var h = f.dataset && FORMS[f.dataset.f]; if (!h) return;
+  try { h(f); } catch (err) { ferr('Could not save: ' + err.message); if (window.console) console.error(err); }
+});
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
+$('#main').addEventListener('focusout', function () { if (DEFER) setTimeout(function () { if (DEFER) render(); }, 60); });
+window.addEventListener('beforeunload', function (e) { if (PEND > 0) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ================= toast ================= */
+var TT = 0;
+function toast(m) { var t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(TT); TT = setTimeout(function () { t.hidden = true; }, 3200); }
+
+/* ================= files: backup, import, Excel, PDF ================= */
+function backupObj(src) { return { app: 'office-desk', ver: 2, at: new Date().toISOString(), clients: src.clients, staff: src.staff, tasks: src.tasks, pay: src.pay, vp: src.vp, comps: src.comps, marks: src.marks, set: src.set }; }
+function saveFile(name, data, mime) {
+  return (RT || Promise.resolve()).then(function () {
+    if (DL) return DL.save({ filename: name, data: data }).then(function () { toast('Saved ' + name); return true; }, function (e) { var c = e && e.code; if (c !== 'declined') toast(c === 'rate_limited' ? 'Another save is still waiting. Finish that one first.' : 'This file could not be saved here.'); return false; });
+    try {
+      var b = data instanceof Blob ? data : new Blob([data], { type: mime || 'application/octet-stream' }), u = URL.createObjectURL(b), a = document.createElement('a');
+      a.href = u; a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(u); a.remove(); }, 5000);
+      toast('Downloading ' + name); return true;
+    } catch (e) { toast('This file could not be saved here.'); return false; }
+  });
+}
+var PENDING_IMPORT = null;
+function readImport(file) {
+  var box = $('#imp_info'); if (!file || !box) return;
+  if (file.size > 30e6) { box.innerHTML = '<p class="ferr">This file is too large to be an Office Desk backup.</p>'; return; }
+  var r = new FileReader();
+  r.onload = function () {
+    var o; try { o = JSON.parse(r.result); } catch (e) { box.innerHTML = '<p class="ferr">This file could not be read. Choose a .json backup made by Office Desk.</p>'; return; }
+    if (!o || typeof o !== 'object' || !TYPES.some(function (t) { return Array.isArray(o[t]); })) { box.innerHTML = '<p class="ferr">This file is not an Office Desk backup.</p>'; return; }
+    var m = migrate(o); PENDING_IMPORT = m;
+    var parts = [['clients', 'client'], ['staff', 'staff member'], ['tasks', 'work item'], ['pay', 'invoice'], ['vp', 'vendor bill'], ['comps', 'compliance']].map(function (x) { return m[x[0]].length ? plural(m[x[0]].length, x[1]) : ''; }).filter(Boolean);
+    box.innerHTML = '<div class="sum">This backup has ' + (parts.length ? esc(parts.join(', ')) : 'no records') + '.' + (m.set.name ? '<br>Firm: ' + esc(m.set.name) : '') + '</div>' + (parts.length ? '<button class="btn pri" data-a="doImport">Import now</button>' : '');
+  };
+  r.onerror = function () { box.innerHTML = '<p class="ferr">This file could not be read.</p>'; };
+  r.readAsText(file);
+}
+function importInto(m, done) {
+  var types = ROLE === 'admin' ? TYPES : ['clients', 'tasks'];
+  if (MODE !== 'db') {
+    types.forEach(function (t) { m[t].forEach(function (r) { upsert(t, r); }); });
+    if (ROLE === 'admin') { Object.keys(m.marks).forEach(function (k) { var c = {}; Object.keys(S.marks).forEach(function (z) { c[z] = S.marks[z]; }); c[k] = m.marks[k]; S.marks = c; }); if (!S.set.name && m.set.name) S.set = m.set; }
+    saveLocal(); closeSheet(); toast('Imported'); PENDING_IMPORT = null; render(true); done(true); return;
+  }
+  var jobs = [];
+  types.forEach(function (t) { m[t].forEach(function (r) { jobs.push(function () { return putQuiet(t, r); }); }); });
+  if (ROLE === 'admin') {
+    Object.keys(m.marks).forEach(function (k) { jobs.push(function () { var mk = m.marks[k], full = { f: mk.f, due: mk.due || null }, p = write(PATH.marks + '/' + k, 'set', full); var c = {}; Object.keys(S.marks).forEach(function (z) { c[z] = S.marks[z]; }); c[k] = mk; S.marks = c; markWrite(k, mk, p); return p; }); });
+    if (!S.set.name && m.set.name) jobs.push(function () { var mine = S.set = m.set; OVERSET = mine; return write(SETPATH, 'set', mine).then(function (r) { if (OVERSET === mine) OVERSET = null; return r; }); });
+  }
+  var total = jobs.length, ok = 0, bad = 0;
+  sheet('Importing', '<p id="imp_prog">Saving 0 of ' + total + '…</p><p class="meta">Keep this page open until it finishes.</p>');
+  var started = jobs.map(function (j) { return j().then(function (r) { if (r) ok++; else bad++; var e = $('#imp_prog'); if (e) e.textContent = 'Saving ' + (ok + bad) + ' of ' + total + '…'; }); });
+  schedule();
+  Promise.all(started).then(function () {
+    PENDING_IMPORT = null;
+    sheet('Import finished', '<p>' + plural(ok, 'record') + ' imported' + (bad ? ', <b class="bad">' + bad + ' failed</b>. Try importing the same file again; nothing is duplicated.' : '.') + '</p><div class="sacts"><button class="btn pri" data-a="closeSheet">Done</button></div>');
+    done(!bad);
+  });
+}
+function csvCell(v) { if (typeof v === 'number') return String(v); v = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(v)) v = "'" + v; return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function csvText(rows) { return '﻿' + rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n'); }
+function exportCsv(kind) {
+  var rows, t = today(), name = kind;
+  if (kind === 'clients') { var dm = dueMap(); rows = [['Name', 'Mobile', 'Email', 'GSTIN', 'PAN', 'State', 'Address', 'Notes', 'Amount due']].concat(S.clients.slice().sort(byName).map(function (c) { return [c.name, c.phone, c.email, c.gstin, c.pan, STATES[c.state] || '', c.addr, c.notes, dm[c.id] || 0]; })); }
+  else if (kind === 'invoices') rows = [['Invoice no.', 'Invoice date', 'Client', 'Client GSTIN', 'Description', 'SAC', 'Taxable value', 'GST %', 'CGST', 'SGST', 'IGST', 'Total', 'Received', 'TDS', 'Balance', 'Due date', 'Status']].concat(S.pay.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; }).map(function (p) { var c = client(p.cid) || {}, pi = pinfo(p); return [p.no, p.date, cn(p), c.gstin || '', p.desc, p.sac, p.tx, p.rate, p.cgst, p.sgst, p.igst, p.amt, pi.rec, pi.tds, pi.bal, p.due, { paid: 'Paid', over: 'Overdue', today: 'Due today', part: 'Part paid', open: 'Pending' }[pi.st]]; }));
+  else if (kind === 'receipts') { rows = [['Date', 'Client', 'Invoice no.', 'Amount received', 'TDS', 'Mode', 'Reference']]; S.pay.forEach(function (p) { p.rcv.forEach(function (r) { rows.push([r.date, cn(p), p.no, r.amt, r.tds, r.mode, r.ref]); }); }); rows = [rows[0]].concat(rows.slice(1).sort(function (a, b) { return a[0] < b[0] ? -1 : 1; })); }
+  else if (kind === 'bills') rows = [['Party', 'Bill no.', 'Bill date', 'Pay by', 'Amount', 'Paid', 'TDS', 'Balance', 'Remarks']].concat(S.vp.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; }).map(function (x) { var vi = vinfo(x); return [x.party, x.bill, x.date, x.due, x.amt, vi.paid, vi.tds, vi.bal, x.rem]; }));
+  else if (kind === 'vpays') { rows = [['Date', 'Party', 'Bill no.', 'Amount paid', 'TDS deducted', 'Mode', 'Reference']]; S.vp.forEach(function (x) { x.pays.forEach(function (r) { rows.push([r.date, x.party, x.bill, r.amt, r.tds, r.mode, r.ref]); }); }); rows = [rows[0]].concat(rows.slice(1).sort(function (a, b) { return a[0] < b[0] ? -1 : 1; })); }
+  else if (kind === 'work') rows = [['Work', 'Client', 'Assigned to', 'Last date', 'Status', 'Done on', 'Notes']].concat(S.tasks.map(function (x) { return [x.title, x.cid || x.cname ? cn(x) : '', sname(x.sid), x.due, { todo: 'To do', doing: 'In progress', done: 'Done' }[x.st], x.done, x.note]; }));
+  else if (kind === 'comp') { rows = [['Compliance', 'Period', 'Last date', 'Client', 'GSTIN', 'Status', 'Filed on']]; compEntries().forEach(function (e) { e.st.req.forEach(function (c) { rows.push([e.k.n, pLabel(e.k, e.key), e.due, c.name, c.gstin, e.st.f[c.id] ? 'Filed' : 'Pending', e.st.f[c.id] || '']); }); }); }
+  if (!rows) return;
+  saveFile('office-desk-' + name + '-' + t + '.csv', csvText(rows), 'text/csv');
+}
+
+/* invoice PDF (pdf-lib, loaded only when needed) */
+var LIBS = {}, PDFLIB = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+function loadScript(src) {
+  if (LIBS[src]) return LIBS[src];
+  LIBS[src] = new Promise(function (res, rej) { var s = document.createElement('script'); s.src = src; s.async = true; s.onload = function () { res(); }; s.onerror = function () { LIBS[src] = null; rej(new Error('load')); }; document.head.appendChild(s); });
+  return LIBS[src];
+}
+function pdfText(s) { return String(s == null ? '' : s).replace(/₹/g, 'Rs.').replace(/[‘’‚′]/g, "'").replace(/[“”„″]/g, '"').replace(/[–—−]/g, '-').replace(/…/g, '...').replace(/[•·]/g, '-').replace(/[^\x20-\x7E\xA0-\xFF\n]/g, '?'); }
+function upiLink(p) { var s = S.set, bal = pinfo(p).bal; return 'upi://pay?pa=' + encodeURIComponent(s.upi).replace(/%40/g, '@') + '&pn=' + encodeURIComponent((s.name || 'Payee').slice(0, 50)) + '&am=' + bal.toFixed(2) + '&cu=INR&tn=' + encodeURIComponent(('Invoice ' + (p.no || '')).slice(0, 40)); }
+function qrSvg(text, size) {
+  var m; try { m = QR.make(text); } catch (e) { return ''; }
+  var n = m.length, q = 2, d = '';
+  for (var y = 0; y < n; y++) for (var x = 0; x < n; x++) if (m[y][x]) d += 'M' + (x + q) + ' ' + (y + q) + 'h1v1h-1z';
+  return '<span class="qr"><svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + (n + 2 * q) + ' ' + (n + 2 * q) + '" shape-rendering="crispEdges" role="img" aria-label="UPI QR code"><rect width="100%" height="100%" fill="#fff"/><path d="' + d + '" fill="#000"/></svg></span>';
+}
+function makePdf(p) {
+  toast('Preparing PDF…');
+  loadScript(PDFLIB).then(function () { return buildPdf(p); }).then(function (bytes) {
+    var c = client(p.cid), nm = ('Invoice ' + (p.no || '') + ' ' + (c ? c.name : p.cname || '')).replace(/[^A-Za-z0-9 _-]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Invoice';
+    return saveFile(nm + '.pdf', bytes, 'application/pdf');
+  }).catch(function (e) { toast(e && e.message === 'load' ? 'Could not load the PDF maker. Check your internet and try again.' : 'Could not make the PDF: ' + (e && e.message || 'unknown error')); if (window.console) console.error(e); });
+}
+function buildPdf(p) {
+  var L = window.PDFLib, s = S.set, c = client(p.cid) || { name: p.cname || 'Client', addr: '', gstin: '', pan: '', state: '' }, pi = pinfo(p), tax = r2(p.cgst + p.sgst + p.igst);
+  return L.PDFDocument.create().then(function (doc) {
+    doc.setTitle(pdfText('Invoice ' + (p.no || ''))); doc.setAuthor(pdfText(s.name || 'Office Desk')); doc.setCreator('Office Desk');
+    return Promise.all([doc.embedFont(L.StandardFonts.Helvetica), doc.embedFont(L.StandardFonts.HelveticaBold)]).then(function (fs) {
+      var F = fs[0], B = fs[1], W = 595.28, H = 841.89, M = 42, page = doc.addPage([W, H]), y = H - M;
+      var ink = L.rgb(0.09, 0.11, 0.1), mut = L.rgb(0.38, 0.41, 0.4), line = L.rgb(0.76, 0.79, 0.77), fill = L.rgb(0.93, 0.95, 0.94), acc = L.rgb(0.12, 0.43, 0.33);
+      function T(x) { return pdfText(x); }
+      function text(x, X, Y, size, font, col) { page.drawText(T(x), { x: X, y: Y, size: size, font: font || F, color: col || ink }); }
+      function right(x, XR, Y, size, font, col) { x = T(x); var w = (font || F).widthOfTextAtSize(x, size); page.drawText(x, { x: XR - w, y: Y, size: size, font: font || F, color: col || ink }); }
+      function wrap(x, width, size, font) {
+        var out = []; font = font || F;
+        T(x).split('\n').forEach(function (para) {
+          var cur = ''; para.split(/\s+/).filter(Boolean).forEach(function (w) {
+            var tryS = cur ? cur + ' ' + w : w;
+            if (font.widthOfTextAtSize(tryS, size) <= width) { cur = tryS; return; }
+            if (cur) out.push(cur);
+            while (font.widthOfTextAtSize(w, size) > width && w.length > 1) { var k = w.length; while (k > 1 && font.widthOfTextAtSize(w.slice(0, k), size) > width) k--; out.push(w.slice(0, k)); w = w.slice(k); }
+            cur = w;
+          });
+          out.push(cur);
+        });
+        return out.filter(function (l, i, a) { return l || (i > 0 && i < a.length - 1); });
+      }
+      function need(h) { if (y - h < M + 24) { page = doc.addPage([W, H]); y = H - M; } }
+      function hr(Y) { page.drawLine({ start: { x: M, y: Y }, end: { x: W - M, y: Y }, thickness: 0.7, color: line }); }
+      y -= 16; var firmLines = wrap(s.name || 'Your firm name', W - 2 * M - 120, 15, B); firmLines.forEach(function (l, i) { text(l, M, y - i * 18, 15, B); }); right(tax > 0 ? 'TAX INVOICE' : 'INVOICE', W - M, y + 1, 12, B, acc); y -= (firmLines.length - 1) * 18;
+      var fl = []; if (s.addr) fl = fl.concat(wrap(s.addr, 330, 9));
+      var idl = [s.gstin ? 'GSTIN: ' + s.gstin : '', s.pan ? 'PAN: ' + s.pan : ''].filter(Boolean).join('    '); if (idl) fl.push(idl);
+      var cl = [s.phone ? 'Phone: ' + s.phone : '', s.email ? 'Email: ' + s.email : ''].filter(Boolean).join('    '); if (cl) fl.push(cl);
+      fl.forEach(function (l) { y -= 12; text(l, M, y, 9, F, mut); });
+      y -= 12; hr(y);
+      var yl = y, yr = y, colW = 280;
+      yl -= 14; text('BILL TO', M, yl, 8, B, mut);
+      wrap(c.name, colW, 11, B).forEach(function (l) { yl -= 14; text(l, M, yl, 11, B); });
+      if (c.addr) wrap(c.addr, colW, 9).forEach(function (l) { yl -= 12; text(l, M, yl, 9); });
+      if (c.gstin) { yl -= 12; text('GSTIN: ' + c.gstin, M, yl, 9); } else if (c.pan) { yl -= 12; text('PAN: ' + c.pan, M, yl, 9); }
+      if (c.state) { yl -= 12; text('State: ' + stateName(c.state), M, yl, 9); }
+      var pos = c.state || (GST_RE.test(c.gstin) ? c.gstin.slice(0, 2) : '') || s.state;
+      var meta = [['Invoice no.', p.no || '-'], ['Invoice date', p.date ? fmt(p.date, 1) : '-']];
+      if (p.due) meta.push(['Due date', fmt(p.due, 1)]);
+      if (tax > 0 && pos) meta.push(['Place of supply', stateName(pos)]);
+      meta.forEach(function (r) { yr -= 14; text(r[0], W - M - 230, yr, 9, F, mut); right(r[1], W - M, yr, 9.5, B); });
+      y = Math.min(yl, yr) - 18;
+      need(80);
+      page.drawRectangle({ x: M, y: y - 6, width: W - 2 * M, height: 20, color: fill });
+      text('#', M + 6, y, 9, B); text('Description', M + 26, y, 9, B); text('SAC', W - M - 170, y, 9, B); right('Amount (Rs.)', W - M - 6, y, 9, B);
+      var dl = wrap(p.desc || 'Professional fees', W - 2 * M - 26 - 200, 10);
+      y -= 22; text('1', M + 6, y, 10); dl.forEach(function (l, i) { text(l, M + 26, y - i * 13, 10); }); text(p.sac || '-', W - M - 170, y, 10); right(money2(p.tx), W - M - 6, y, 10);
+      y -= (dl.length - 1) * 13 + 10; hr(y);
+      var rows = [['Taxable value', p.tx, 0]];
+      if (p.cgst) { rows.push(['CGST @ ' + (p.rate / 2) + '%', p.cgst, 0]); rows.push(['SGST @ ' + (p.rate / 2) + '%', p.sgst, 0]); }
+      if (p.igst) rows.push(['IGST @ ' + p.rate + '%', p.igst, 0]);
+      rows.push(['Total', p.amt, 1]);
+      if (pi.rec || pi.tds) { rows.push(['Received', pi.rec, 0]); if (pi.tds) rows.push(['TDS deducted', pi.tds, 0]); rows.push(['Balance due', pi.bal, 1]); }
+      need(rows.length * 15 + 20);
+      rows.forEach(function (r) { y -= 15; if (r[2]) page.drawLine({ start: { x: W - M - 230, y: y + 11 }, end: { x: W - M, y: y + 11 }, thickness: 0.5, color: line }); text(r[0], W - M - 230, y, 9.5, r[2] ? B : F); right('Rs. ' + money2(r[1]), W - M - 6, y, 9.5, r[2] ? B : F); });
+      y -= 22; text('Amount in words', M, y, 8, B, mut);
+      wrap(amountWords(p.amt), W - 2 * M, 9.5).forEach(function (l) { y -= 13; text(l, M, y, 9.5); });
+      var bank = [s.bank ? 'Bank: ' + s.bank : '', s.acname ? 'A/c name: ' + s.acname : '', s.acno ? 'A/c no.: ' + s.acno : '', s.ifsc ? 'IFSC: ' + s.ifsc : '', s.upi ? 'UPI: ' + s.upi : ''].filter(Boolean);
+      var showQr = s.upi && pi.bal > 0;
+      if (bank.length || showQr) {
+        need(showQr ? 130 : bank.length * 13 + 30);
+        y -= 22; var top = y; text('Payment details', M, y, 8, B, mut);
+        bank.forEach(function (b) { wrap(b, 300, 9.5).forEach(function (l) { y -= 13; text(l, M, y, 9.5); }); });
+        if (showQr) {
+          var m = QR.make(upiLink(p)), n = m.length, sz = 96, cell = sz / (n + 4), qx = W - M - sz, qy = top - sz + 10;
+          page.drawRectangle({ x: qx, y: qy, width: sz, height: sz, color: L.rgb(1, 1, 1) });
+          for (var r = 0; r < n; r++) { var run = -1; for (var cc = 0; cc <= n; cc++) { var dk = cc < n && m[r][cc]; if (dk && run < 0) run = cc; if (!dk && run >= 0) { page.drawRectangle({ x: qx + (run + 2) * cell, y: qy + sz - (r + 3) * cell, width: (cc - run) * cell, height: cell, color: L.rgb(0, 0, 0) }); run = -1; } } }
+          var cap = 'Scan to pay Rs. ' + money2(pi.bal); right(cap, W - M, qy - 11, 8, F, mut);
+          y = Math.min(y, qy - 14);
+        }
+      }
+      var notes = [p.note, s.terms].filter(Boolean).join('  |  ');
+      if (notes) { y -= 18; wrap(notes, W - 2 * M, 9).forEach(function (l) { need(14); y -= 12; text(l, M, y, 9, F, mut); }); }
+      need(70); y -= 34; right('For ' + (s.name || 'your firm'), W - M, y, 9.5, B); y -= 36; right('Authorised Signatory', W - M, y, 9, F, mut);
+      doc.getPages().forEach(function (pg) { pg.drawText('This is a computer-generated invoice.', { x: M, y: M - 18, size: 7.5, font: F, color: mut }); });
+      return doc.save();
+    });
+  });
+}
+
+/* QR code (byte mode, level M) — standard algorithm, verified by decoding */
+var QR = (function () {
+  var ECC = [-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28];
+  var BLK = [-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 17, 17, 18, 20, 21, 23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49];
+  function rawMods(v) { var r = (16 * v + 128) * v + 64; if (v >= 2) { var na = Math.floor(v / 7) + 2; r -= (25 * na - 10) * na - 55; if (v >= 7) r -= 36; } return r; }
+  function dataCw(v) { return Math.floor(rawMods(v) / 8) - ECC[v] * BLK[v]; }
+  function gmul(x, y) { var z = 0; for (var i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11D); z ^= ((y >>> i) & 1) * x; } return z & 0xFF; }
+  function rsDiv(deg) { var r = [], i, j; for (i = 0; i < deg - 1; i++) r.push(0); r.push(1); var root = 1; for (i = 0; i < deg; i++) { for (j = 0; j < r.length; j++) { r[j] = gmul(r[j], root); if (j + 1 < r.length) r[j] ^= r[j + 1]; } root = gmul(root, 2); } return r; }
+  function rsRem(data, div) { var r = div.map(function () { return 0; }); data.forEach(function (b) { var f = b ^ r.shift(); r.push(0); div.forEach(function (c, i) { r[i] ^= gmul(c, f); }); }); return r; }
+  function make(text) {
+    var bytes = Array.prototype.slice.call(new TextEncoder().encode(String(text))), v, cap, i, j, k;
+    for (v = 1; v <= 40; v++) { cap = dataCw(v) * 8; if (4 + (v < 10 ? 8 : 16) + bytes.length * 8 <= cap) break; }
+    if (v > 40) throw new Error('Text too long for a QR code');
+    var bits = [];
+    function put(val, len) { for (var q = len - 1; q >= 0; q--) bits.push((val >>> q) & 1); }
+    put(4, 4); put(bytes.length, v < 10 ? 8 : 16); bytes.forEach(function (b) { put(b, 8); });
+    put(0, Math.min(4, cap - bits.length)); put(0, (8 - bits.length % 8) % 8);
+    for (var pb = 0xEC; bits.length < cap; pb ^= 0xEC ^ 0x11) put(pb, 8);
+    var data = [];
+    for (i = 0; i < bits.length; i += 8) { var b = 0; for (j = 0; j < 8; j++) b = (b << 1) | bits[i + j]; data.push(b); }
+    var nb = BLK[v], el = ECC[v], raw = Math.floor(rawMods(v) / 8), nShort = nb - raw % nb, shortLen = Math.floor(raw / nb), div = rsDiv(el), blocks = [];
+    for (i = 0, k = 0; i < nb; i++) { var dat = data.slice(k, k + shortLen - el + (i < nShort ? 0 : 1)); k += dat.length; var ecc = rsRem(dat, div); if (i < nShort) dat.push(0); blocks.push(dat.concat(ecc)); }
+    var all = [];
+    for (i = 0; i < blocks[0].length; i++) for (j = 0; j < blocks.length; j++) if (i !== shortLen - el || j >= nShort) all.push(blocks[j][i]);
+    var n = v * 4 + 17, M = [], Fn = [], x, y, dx, dy;
+    for (y = 0; y < n; y++) { M.push([]); Fn.push([]); for (x = 0; x < n; x++) { M[y].push(false); Fn[y].push(false); } }
+    function setF(xx, yy, d) { M[yy][xx] = d; Fn[yy][xx] = true; }
+    for (i = 0; i < n; i++) { setF(6, i, i % 2 === 0); setF(i, 6, i % 2 === 0); }
+    function finder(cx, cy) { for (dy = -4; dy <= 4; dy++) for (dx = -4; dx <= 4; dx++) { var d = Math.max(Math.abs(dx), Math.abs(dy)), xx = cx + dx, yy = cy + dy; if (xx >= 0 && xx < n && yy >= 0 && yy < n) setF(xx, yy, d !== 2 && d !== 4); } }
+    finder(3, 3); finder(n - 4, 3); finder(3, n - 4);
+    var ap = [];
+    if (v > 1) { var na = Math.floor(v / 7) + 2, step = (v === 32) ? 26 : Math.ceil((v * 4 + 4) / (na * 2 - 2)) * 2; ap = [6]; for (var pos = n - 7; ap.length < na; pos -= step) ap.splice(1, 0, pos); }
+    for (i = 0; i < ap.length; i++) for (j = 0; j < ap.length; j++) {
+      if ((i === 0 && j === 0) || (i === 0 && j === ap.length - 1) || (i === ap.length - 1 && j === 0)) continue;
+      for (dy = -2; dy <= 2; dy++) for (dx = -2; dx <= 2; dx++) setF(ap[i] + dx, ap[j] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+    }
+    function fmtBits(mask) {
+      var d = mask, r = d, q;
+      for (q = 0; q < 10; q++) r = (r << 1) ^ ((r >>> 9) * 0x537);
+      var fb = ((d << 10) | r) ^ 0x5412;
+      function g(t) { return ((fb >>> t) & 1) !== 0; }
+      for (q = 0; q <= 5; q++) setF(8, q, g(q));
+      setF(8, 7, g(6)); setF(8, 8, g(7)); setF(7, 8, g(8));
+      for (q = 9; q < 15; q++) setF(14 - q, 8, g(q));
+      for (q = 0; q < 8; q++) setF(n - 1 - q, 8, g(q));
+      for (q = 8; q < 15; q++) setF(8, n - 15 + q, g(q));
+      setF(8, n - 8, true);
+    }
+    fmtBits(0);
+    if (v >= 7) {
+      var rv = v; for (i = 0; i < 12; i++) rv = (rv << 1) ^ ((rv >>> 11) * 0x1F25);
+      var vb = (v << 12) | rv;
+      for (i = 0; i < 18; i++) { var cbit = ((vb >>> i) & 1) !== 0, a = n - 11 + i % 3, bb = Math.floor(i / 3); setF(a, bb, cbit); setF(bb, a, cbit); }
+    }
+    var bi = 0;
+    for (var right = n - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (var vert = 0; vert < n; vert++) for (j = 0; j < 2; j++) {
+        x = right - j; var up = ((right + 1) & 2) === 0; y = up ? n - 1 - vert : vert;
+        if (!Fn[y][x] && bi < all.length * 8) { M[y][x] = ((all[bi >>> 3] >>> (7 - (bi & 7))) & 1) !== 0; bi++; }
+      }
+    }
+    function applyMask(m) {
+      for (y = 0; y < n; y++) for (x = 0; x < n; x++) {
+        if (Fn[y][x]) continue;
+        var inv;
+        switch (m) {
+          case 0: inv = (x + y) % 2 === 0; break;
+          case 1: inv = y % 2 === 0; break;
+          case 2: inv = x % 3 === 0; break;
+          case 3: inv = (x + y) % 3 === 0; break;
+          case 4: inv = (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0; break;
+          case 5: inv = x * y % 2 + x * y % 3 === 0; break;
+          case 6: inv = (x * y % 2 + x * y % 3) % 2 === 0; break;
+          default: inv = ((x + y) % 2 + x * y % 3) % 2 === 0;
+        }
+        if (inv) M[y][x] = !M[y][x];
+      }
+    }
+    function addHist(len, h) { if (h[0] === 0) len += n; h.pop(); h.unshift(len); }
+    function countPat(h) { var q = h[1], core = q > 0 && h[2] === q && h[3] === q * 3 && h[4] === q && h[5] === q; return (core && h[0] >= q * 4 && h[6] >= q ? 1 : 0) + (core && h[6] >= q * 4 && h[0] >= q ? 1 : 0); }
+    function termCount(color, len, h) { if (color) { addHist(len, h); len = 0; } len += n; addHist(len, h); return countPat(h); }
+    function penalty() {
+      var res = 0, dark = 0, a, b;
+      for (var pass = 0; pass < 2; pass++) {
+        for (a = 0; a < n; a++) {
+          var rc = false, rl = 0, h = [0, 0, 0, 0, 0, 0, 0];
+          for (b = 0; b < n; b++) {
+            var mod = pass ? M[b][a] : M[a][b];
+            if (mod === rc) { rl++; if (rl === 5) res += 3; else if (rl > 5) res++; }
+            else { addHist(rl, h); if (!rc) res += countPat(h) * 40; rc = mod; rl = 1; }
+          }
+          res += termCount(rc, rl, h) * 40;
+        }
+      }
+      for (a = 0; a < n - 1; a++) for (b = 0; b < n - 1; b++) { var cc = M[a][b]; if (cc === M[a][b + 1] && cc === M[a + 1][b] && cc === M[a + 1][b + 1]) res += 3; }
+      for (a = 0; a < n; a++) for (b = 0; b < n; b++) if (M[a][b]) dark++;
+      var tot = n * n, kk = Math.ceil(Math.abs(dark * 20 - tot * 10) / tot) - 1;
+      return res + kk * 10;
+    }
+    var best = 0, min = Infinity;
+    for (var mm = 0; mm < 8; mm++) { applyMask(mm); fmtBits(mm); var pnl = penalty(); if (pnl < min) { min = pnl; best = mm; } applyMask(mm); }
+    applyMask(best); fmtBits(best);
+    return M;
+  }
+  return { make: make };
+})();
+
+/* ================= phone app (Firebase): sign-in, owner, staff access ================= */
+var FBM = false, FAUTH = null, FS = null, FUSER = null, MEMBER = null, META = null, FBERR = '', TEAM = { req: [], mem: [] }, ASKED = {}, SIGNUPNAME = '', BIP = null;
+var FBV = 'https://www.gstatic.com/firebasejs/10.12.2/';
+function fbErr(e) {
+  var c = e && e.code, m = { 'permission-denied': 'invalid_argument', 'not-found': 'invalid_argument', 'invalid-argument': 'invalid_argument', 'failed-precondition': 'invalid_argument', 'resource-exhausted': 'quota_exceeded', 'unauthenticated': 'revoked' };
+  return { code: m[c] || 'unavailable', fb: c || '', message: (e && e.message) || String(e) };
+}
+function plain(o) { return JSON.parse(JSON.stringify(o)); }
+function flatUpdate(o) {
+  var D = firebase.firestore.FieldValue.delete(), out = {};
+  Object.keys(o).forEach(function (k) { var v = o[k]; if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(v).forEach(function (k2) { out[k + '.' + k2] = v[k2] == null ? D : plain(v[k2]); }); else out[k] = v === undefined ? null : plain(v); });
+  return out;
+}
+function fbWrap(fs) {
+  function wrapDoc(s) { return { id: s.id, exists: s.exists, metadata: s.metadata, data: function () { return s.data(); } }; }
+  function docRef(path) {
+    var r = fs.doc(path);
+    return {
+      id: r.id, path: path,
+      get: function () { return r.get().then(wrapDoc, function (e) { throw fbErr(e); }); },
+      set: function (d) { return r.set(plain(d)).catch(function (e) { throw fbErr(e); }); },
+      update: function (d) { return r.update(flatUpdate(d)).catch(function (e) { throw fbErr(e); }); },
+      delete: function () { return r.delete().catch(function (e) { throw fbErr(e); }); },
+      onSnapshot: function (next, err) { return r.onSnapshot({ includeMetadataChanges: true }, function (s) { next(wrapDoc(s)); }, function (e) { if (err) err(fbErr(e)); }); }
+    };
+  }
+  function colRef(path) {
+    var c = fs.collection(path);
+    return { path: path, doc: function (id) { return docRef(path + '/' + id); }, onSnapshot: function (next, err) { return c.onSnapshot({ includeMetadataChanges: true }, next, function (e) { if (err) err(fbErr(e)); }); } };
+  }
+  return { doc: docRef, collection: colRef };
+}
+function fbWrite(path, op, body, fallbackSet) {
+  PEND++; head();
+  var ref = DB.doc(path), p = op === 'set' ? ref.set(body) : op === 'update' ? ref.update(body) : ref.delete();
+  return p.then(function () { if (SYNCERR && SYNCERR.indexOf('save') > -1) SYNCERR = ''; return true; }, function (e) {
+    if (op === 'update' && fallbackSet && e && e.code === 'invalid_argument' && ROLE === 'admin') return DB.doc(path).set(fallbackSet).then(function () { return true; }, function (e2) { writeFailed(e2); return false; });
+    writeFailed(e); return false;
+  }).then(function (ok) { PEND--; head(); return ok; });
+}
+function netMsg(e) { var c = e && (e.fb || e.code), m = String((e && e.message) || ''); if (c === 'permission-denied') return 'The database refused access. In Firebase, open Firestore Database → Rules and check the rules were published.'; if (c === 'not-found' || /does not exist/i.test(m)) return 'The office database is not created yet. In Firebase, open Firestore Database and tap Create database.'; return 'Could not reach the office database. Check the internet and tap Try again. If this keeps happening, check that Firestore Database is created in Firebase.'; }
+function authMsg(e) {
+  var c = (e && e.code) || '';
+  return ({ 'auth/invalid-email': 'This email address is not valid.', 'auth/user-not-found': 'Email or password is wrong.', 'auth/wrong-password': 'Email or password is wrong.', 'auth/invalid-credential': 'Email or password is wrong.', 'auth/invalid-login-credentials': 'Email or password is wrong.', 'auth/email-already-in-use': 'This email already has an account. Sign in instead.', 'auth/weak-password': 'Use a password of at least 6 characters.', 'auth/too-many-requests': 'Too many tries. Wait a few minutes and try again.', 'auth/network-request-failed': 'No internet connection. Connect and try again.', 'auth/operation-not-allowed': 'Email sign-in is off in Firebase. Turn on Authentication → Sign-in method → Email/Password.' })[c] || ('Could not sign in (' + (c || 'unknown error') + ').');
+}
+function stopAll(keepMember) { Object.keys(UNSUB).forEach(function (k) { if (keepMember && k === 'member') return; try { UNSUB[k](); } catch (e) {} delete UNSUB[k]; }); }
+function resetData() { S = blank(); LOADED = {}; BASE = {}; OVER = {}; BASEMARKS = {}; OVERMARKS = {}; BASESET = null; OVERSET = null; MARKS_REMOTE = {}; TEAM = { req: [], mem: [] }; V.d = null; DSTACK = []; }
+function onAuth(user) {
+  stopAll(); resetData(); FUSER = user || null; MEMBER = null; META = null; ROLE = 'none';
+  if (!user) { MODE = 'login'; render(true); return; }
+  MODE = 'checking'; render(true);
+  FS.doc('office/meta').get().then(function (m) {
+    if (FUSER !== user) return;
+    if (!m.exists) { MODE = 'setup'; render(true); return; }
+    META = m.data() || {};
+    if (META.owner === user.uid) { startTeam('admin'); return; }
+    watchMember(user);
+  }).catch(function (e) { if (FUSER !== user) return; MODE = 'fberror'; FBERR = netMsg(e); render(true); });
+}
+function watchMember(user) {
+  UNSUB.member = FS.doc('members/' + user.uid).onSnapshot({ includeMetadataChanges: true }, function (s) {
+    var d = s.exists ? s.data() : null;
+    if (d && d.active === true) {
+      var r = d.role === 'admin' ? 'admin' : 'staff', changed = MODE !== 'db' || ROLE !== r;
+      MEMBER = d;
+      if (changed) { stopAll(true); resetData(); if (r === 'staff' && d.sid) F.tstaff = d.sid; startTeam(r); } else schedule();
+    } else {
+      if (MODE === 'db') { stopAll(true); resetData(); }
+      MEMBER = null; ROLE = 'none'; MODE = 'waiting'; render(true);
+      if (!s.metadata.fromCache && !ASKED[user.uid]) { ASKED[user.uid] = 1; FS.doc('requests/' + user.uid).set({ email: user.email || '', name: user.displayName || SIGNUPNAME || '', at: new Date().toISOString() }).catch(function () { ASKED[user.uid] = 0; }); }
+    }
+  }, function (e) { MODE = 'fberror'; FBERR = netMsg(e); render(true); });
+}
+function startTeam(role) { ROLE = role; MODE = 'db'; LOADED = {}; subscribe(); if (role === 'admin') listenTeam(); render(true); }
+function listenTeam() {
+  function rows(q) { return q.docs.filter(function (d) { return ID_RE.test(d.id); }); }
+  UNSUB.req = FS.collection('requests').onSnapshot(function (q) { TEAM.req = rows(q).map(function (d) { var x = d.data() || {}; return { uid: d.id, email: str(x.email, 120), name: str(x.name, 80), at: str(x.at, 30) }; }); schedule(); }, function () {});
+  UNSUB.mem = FS.collection('members').onSnapshot(function (q) { TEAM.mem = rows(q).map(function (d) { var x = d.data() || {}; return { uid: d.id, email: str(x.email, 120), name: str(x.name, 80), role: x.role === 'admin' ? 'admin' : 'staff', active: x.active === true, sid: str(x.sid, 80) }; }); schedule(); }, function () {});
+}
+function authView() {
+  if (MODE === 'boot') return '<div class="empty">Loading…</div>';
+  if (MODE === 'checking') return '<div class="empty">Checking your access…</div>';
+  if (MODE === 'fberror') return '<div class="card auth"><h2>Could not open Office Desk</h2><p>' + esc(FBERR) + '</p><div class="acts"><button class="btn pri" data-a="retry">Try again</button>' + (FUSER ? '<button class="btn" data-a="signout">Sign out</button>' : '') + '</div></div>';
+  if (MODE === 'setup') return '<div class="card auth"><h2>Set up your office</h2><p>Signed in as <b>' + esc(FUSER.email) + '</b>. You will be the <b>owner</b>: you see payments, vendors and compliance, and you decide which staff get access.</p><p class="meta">Do this only from the office owner\'s own account. Staff create their own accounts and wait for your approval.</p><div class="acts"><button class="btn pri" data-a="setupOffice">Set up as owner</button><button class="btn" data-a="signout">Sign out</button></div></div>';
+  if (MODE === 'waiting') return '<div class="card auth"><h2>Waiting for access</h2><p>Your account <b>' + esc(FUSER ? FUSER.email : '') + '</b> is ready. The office owner needs to approve it once.</p><p class="meta">Ask the owner to open <b>Staff → App access</b> and tap Give access. This screen opens the office by itself after that.</p><div class="acts"><button class="btn" data-a="signout">Sign out</button></div></div>' + installCard();
+  var su = !!F.signup;
+  return '<div class="card auth"><h2>' + (su ? 'Create your account' : 'Sign in') + '</h2><p class="meta">' + (su ? 'Staff: after you create your account, the office owner gives you access.' : 'Use the email and password you made for Office Desk.') + '</p>' +
+    '<form data-f="' + (su ? 'signup' : 'login') + '" novalidate>' + (su ? fld('l_name', 'Your name', inp('l_name', '', 'autocomplete="name" maxlength="80"')) : '') +
+    fld('l_email', 'Email', inp('l_email', '', 'type="email" autocomplete="email" inputmode="email" autocapitalize="none" spellcheck="false" maxlength="120"')) +
+    fld('l_pass', 'Password', '<input id="l_pass" type="password" autocomplete="' + (su ? 'new-password' : 'current-password') + '" maxlength="100">', su ? 'At least 6 characters.' : '') +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (su ? 'Create account' : 'Sign in') + '</button>' + (su ? '' : '<button class="btn" type="button" data-a="forgot">Forgot password?</button>') + '</div></form>' +
+    '<p class="meta" style="margin-top:14px">' + (su ? 'Already have an account? ' : 'New staff member? ') + '<button class="lnk" data-a="toggleSignup">' + (su ? 'Sign in' : 'Create an account') + '</button></p></div>';
+}
+function standalone() { try { return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) { return false; } }
+function installCard() {
+  if (!FBM || standalone()) return '';
+  var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return '<h2>Use it like an app</h2><div class="card"><div class="meta">' + (BIP ? 'Tap Install to put Office Desk on this phone\'s home screen.' : ios ? 'In Safari, tap the Share button, then Add to Home Screen.' : 'In Chrome, open the ⋮ menu and tap Install app or Add to Home screen.') + '</div>' + (BIP ? '<div class="acts"><button class="btn pri" data-a="install">Install app</button></div>' : '') + '</div>';
+}
+function accessView() {
+  var mem = TEAM.mem.filter(function (m) { return m.active; }), memIds = {};
+  mem.forEach(function (m) { memIds[m.uid] = 1; });
+  var req = TEAM.req.filter(function (r) { return !memIds[r.uid]; });
+  var h = '<h2>App access <span class="meta">who can open Office Desk</span></h2>';
+  if (req.length) h += '<div class="card badb">' + req.map(function (r) { return '<div class="row"><div class="grow"><b>' + esc(r.name || r.email) + '</b><div class="meta">' + esc(r.email) + ' wants access' + (okDate(r.at.slice(0, 10)) ? ' · ' + fmt(r.at.slice(0, 10)) : '') + '</div></div><div class="acts" style="margin:0"><button class="btn pri sm" data-a="approve" data-id="' + r.uid + '">Give access</button><button class="btn sm del" data-a="reject" data-id="' + r.uid + '">Reject</button></div></div>'; }).join('') + '</div>';
+  var me = FUSER ? FUSER.uid : '', ownerRow = META && META.owner ? '<div class="row"><div class="grow"><b>' + esc(META.owner === me ? FUSER.email : (META.email || 'Office owner')) + '</b><div class="meta">Owner' + (META.owner === me ? ' (you)' : '') + ' · full access</div></div></div>' : '';
+  h += '<div class="card">' + ownerRow + mem.map(function (m) { var s = staffOf(m.sid); return '<div class="row"><div class="grow"><b>' + esc(m.name || m.email) + (m.uid === me ? ' (you)' : '') + '</b><div class="meta">' + esc(m.email) + ' · ' + (m.role === 'admin' ? 'Full access' : 'Clients and work only') + (s ? ' · ' + esc(s.name) : '') + '</div></div><button class="btn sm" data-a="member" data-id="' + m.uid + '">Change</button></div>'; }).join('') + '</div>';
+  if (!req.length) h += '<p class="meta">To add staff: send them this app\'s link. They tap Create an account, and their name shows up here for you to approve.</p>';
+  return h + '<h2>Staff list</h2>';
+}
+function staffPick(cur, exceptUid, fallbackName) {
+  var used = {}; TEAM.mem.forEach(function (m) { if (m.active && m.sid && m.uid !== exceptUid) used[m.sid] = 1; });
+  var L = S.staff.filter(function (s) { return !used[s.id] || s.id === cur; }).sort(byName).map(function (s) { return [s.id, s.name]; });
+  return '<select id="a_sid">' + opts(L.concat([['_new', 'Add as new staff: ' + (fallbackName || 'new person')]]), cur || (L.length ? '' : '_new'), 'Not linked') + '</select>';
+}
+function sheetApprove(u) {
+  var r = TEAM.req.filter(function (x) { return x.uid === u; })[0]; if (!r) return;
+  var nm = r.name || r.email.split('@')[0];
+  sheet('Give access', '<form data-f="approve" data-id="' + u + '" novalidate><div class="sum"><b>' + esc(nm) + '</b><br>' + esc(r.email) + '</div>' +
+    fld('a_role', 'What can they open?', '<select id="a_role">' + opts([['staff', 'Clients and work only (staff)'], ['admin', 'Everything, including payments (partner)']], 'staff') + '</select>') +
+    fld('a_sid', 'Which staff person is this?', staffPick('', u, nm), 'Links their login to the Staff list, so the Work tab opens on their own work.') +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Give access</button></div></form>');
+}
+function sheetMember(u) {
+  var m = TEAM.mem.filter(function (x) { return x.uid === u; })[0]; if (!m) return;
+  sheet('Access for ' + (m.name || m.email), '<form data-f="member" data-id="' + u + '" novalidate><div class="sum">' + esc(m.email) + '</div>' +
+    fld('a_role', 'What can they open?', '<select id="a_role">' + opts([['staff', 'Clients and work only (staff)'], ['admin', 'Everything, including payments (partner)']], m.role) + '</select>') +
+    fld('a_sid', 'Which staff person is this?', staffPick(m.sid, u, m.name || m.email.split('@')[0])) +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">Save</button><button class="btn del" type="button" data-a="revoke" data-id="' + u + '">Remove access</button></div></form>');
+}
+function linkStaff(sid, nm) { if (sid !== '_new') return sid || ''; var s = put('staff', { id: uid(), name: nm, role: '', phone: '' }); return s.id; }
+FORMS.login = function (f) {
+  var e = val('l_email'), p = $('#l_pass').value, b = f.querySelector('[type=submit]');
+  if (!e || !p) return ferr('Enter your email and password.');
+  b.disabled = true; FAUTH.signInWithEmailAndPassword(e, p).catch(function (err) { b.disabled = false; ferr(authMsg(err)); });
+};
+FORMS.signup = function (f) {
+  var n = val('l_name'), e = val('l_email'), p = $('#l_pass').value, b = f.querySelector('[type=submit]');
+  if (!n) return ferr('Enter your name.', 'l_name');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return ferr('Enter a valid email.', 'l_email');
+  if (p.length < 6) return ferr('Use a password of at least 6 characters.', 'l_pass');
+  SIGNUPNAME = n; b.disabled = true;
+  FAUTH.createUserWithEmailAndPassword(e, p).then(function (c) { return c && c.user && c.user.updateProfile ? c.user.updateProfile({ displayName: n }).catch(function () {}) : null; }).catch(function (err) { b.disabled = false; ferr(authMsg(err)); });
+};
+FORMS.approve = function (f) {
+  var u = f.dataset.id, r = TEAM.req.filter(function (x) { return x.uid === u; })[0]; if (!r) return closeSheet();
+  var nm = r.name || r.email.split('@')[0], role = val('a_role') === 'admin' ? 'admin' : 'staff', sid = linkStaff(val('a_sid'), nm);
+  closeSheet();
+  FS.doc('members/' + u).set({ role: role, active: true, email: r.email, name: nm, sid: sid, at: new Date().toISOString() }).then(function () { FS.doc('requests/' + u).delete().catch(function () {}); toast('Access given to ' + nm); }, function () { toast('Could not give access. Check your internet and try again.'); });
+};
+FORMS.member = function (f) {
+  var u = f.dataset.id, m = TEAM.mem.filter(function (x) { return x.uid === u; })[0]; if (!m) return closeSheet();
+  var role = val('a_role') === 'admin' ? 'admin' : 'staff', sid = linkStaff(val('a_sid'), m.name || m.email.split('@')[0]);
+  closeSheet();
+  FS.doc('members/' + u).update({ role: role, sid: sid }).then(function () { toast('Access updated'); }, function () { toast('Could not update access. Check your internet.'); });
+};
+A.setupOffice = function () {
+  var u = FUSER; if (!u) return;
+  FS.doc('office/meta').set({ owner: u.uid, email: u.email || '', created: new Date().toISOString() }).then(function () {
+    META = { owner: u.uid, email: u.email || '' }; startTeam('admin');
+    PRESETS.slice(0, 4).forEach(function (p) { put('comps', Object.assign({}, p, { cl: [], since: {}, ct: today() })); });
+    toast('Office set up. Welcome!');
+  }, function (e) { toast(e && e.code === 'permission-denied' ? 'This office already has an owner.' : 'Could not set up. Check your internet and try again.'); onAuth(u); });
+};
+A.toggleSignup = function () { F.signup = !F.signup; render(true); };
+A.forgot = function () {
+  var e = val('l_email'); if (!e) { ferr('Type your email above, then tap Forgot password.', 'l_email'); return; }
+  FAUTH.sendPasswordResetEmail(e).then(function () { toast('Password reset email sent to ' + e + '. Check spam too.'); }, function (err) { ferr(authMsg(err)); });
+};
+A.signout = function () {
+  if (PEND > 0 && !A.signout.ok) { A.signout.ok = 1; toast('Some changes are still uploading. Tap Sign out again to sign out anyway.'); setTimeout(function () { A.signout.ok = 0; }, 5000); return; }
+  FAUTH.signOut().then(function () { return FS.terminate(); }).then(function () { return FS.clearPersistence(); }).catch(function () {}).then(function () { location.reload(); });
+};
+A.retry = function () { location.reload(); };
+A.approve = function (u) { sheetApprove(u); };
+A.member = function (u) { sheetMember(u); };
+A.reject = function (u, el) { armed(el, function () { FS.doc('requests/' + u).delete().then(function () { toast('Request removed'); }, function () { toast('Could not remove. Check your internet.'); }); }); };
+A.revoke = function (u) { var m = TEAM.mem.filter(function (x) { return x.uid === u; })[0]; ask('Remove access for ' + (m ? m.name || m.email : 'this person') + '?', 'They can no longer open Office Desk. Their past work stays.', 'Remove access', function () { FS.doc('members/' + u).delete().then(function () { toast('Access removed'); }, function () { toast('Could not remove access. Check your internet.'); }); }); };
+A.install = function () { if (!BIP) return; var e = BIP; BIP = null; head(); e.prompt(); };
+function pwaSetup() {
+  try {
+    var add = function (tag, attrs) { var el = document.createElement(tag); Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); }); document.head.appendChild(el); };
+    if (!document.querySelector('link[rel=manifest]')) add('link', { rel: 'manifest', href: 'manifest.webmanifest' });
+    add('meta', { name: 'theme-color', content: '#1f6f54' });
+    add('link', { rel: 'apple-touch-icon', href: 'icon-192.png' });
+    add('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' });
+    add('meta', { name: 'apple-mobile-web-app-title', content: 'Office Desk' });
+    if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
+  } catch (e) {}
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); BIP = e; head(); schedule(); });
+  window.addEventListener('appinstalled', function () { BIP = null; head(); schedule(); toast('Office Desk installed'); });
+  window.addEventListener('online', function () { head(); });
+  window.addEventListener('offline', function () { head(); });
+}
+function bootFirebase() {
+  FBM = true; MODE = 'boot'; ROLE = 'none'; render(true); pwaSetup();
+  RT = loadScript(FBV + 'firebase-app-compat.js').then(function () { return Promise.all([loadScript(FBV + 'firebase-auth-compat.js'), loadScript(FBV + 'firebase-firestore-compat.js')]); }).then(function () {
+    firebase.initializeApp(FBCFG);
+    FS = firebase.firestore();
+    try { FS.enablePersistence({ synchronizeTabs: true }).catch(function () {}); } catch (e) {}
+    DB = fbWrap(FS); FAUTH = firebase.auth();
+    FAUTH.onAuthStateChanged(onAuth);
+  }).catch(function () { MODE = 'fberror'; FBERR = 'Could not load the app. Check your internet connection and tap Try again.'; render(true); });
+}
+
+/* ================= start ================= */
+function roleOf(u) {
+  if (!u) return Promise.resolve('admin');
+  return Promise.all([u.isOwner(), u.canEdit(), u.can('data.write')]).then(function (p) { return (p[0] || p[1]) ? 'admin' : (p[2] === false ? 'viewer' : 'staff'); }, function () { return 'staff'; });
+}
+function detectLocalOnly() {
+  if (ROLE !== 'admin') return;
+  var raw = lsGet(LKEY); if (!raw) return;
+  try { var m = migrate(JSON.parse(raw)); if (countRecords(m)) LOCALONLY = m; } catch (e) {}
+}
+function startLocal() { MODE = 'local'; ROLE = 'admin'; var l = loadLocal(); S = l.data; if (l.fresh) saveLocal(); if (l.broken) toast('Saved data in this browser could not be read. A copy was kept; import a backup to continue.'); render(true); }
+function boot() {
+  if (FBCFG && FBCFG.apiKey) { bootFirebase(); return; }
+  if (!(window.claude && typeof window.claude.use === 'function')) { startLocal(); RT = Promise.resolve(); return; }
+  MODE = 'boot'; render(true);
+  RT = Promise.all([claude.use('db'), claude.use('user'), claude.use('downloads')]).then(function (r) {
+    DL = r[2] || null;
+    if (!r[0]) { startLocal(); return; }
+    DB = r[0];
+    return roleOf(r[1]).then(function (role) { ROLE = role; MODE = 'db'; S = blank(); LOADED = {}; detectLocalOnly(); if (ROLE !== 'viewer') subscribe(); render(true); });
+  }).catch(function () { startLocal(); });
+}
+window.__od = { fb: function () { return { mode: MODE, role: ROLE, member: MEMBER, team: TEAM }; }, S: function () { return S; }, put: put, render: render, mode: function () { return MODE; }, role: function () { return ROLE; }, qr: QR, today: today, pending: function () { return PEND; }, comp: { pUpcoming: pUpcoming, pDue: pDue, pLabel: pLabel, pShift: pShift }, words: amountWords, gstOk: gstOk, waNum: waNum, migrate: migrate };
+boot();
+})();
+</script>
+</html>
