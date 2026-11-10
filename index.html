@@ -213,6 +213,11 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 .lh-foot{border-top:4px solid #cfa149;padding:15px 20px;min-height:48px;text-align:center;font-size:13.5px;line-height:1.4}
 .lh-foot svg{width:12px;height:18px;vertical-align:-4px;margin-right:8px}
 @media (max-width:480px){.inv{font-size:13px}.lh-band{padding:11px 14px}.lh-body{padding:12px 14px 22px}.lh-firm{font-size:17px}.lh-sub,.lh-ct{font-size:12px}.lh-logo{width:50px;height:42px}.lh-ct{margin-left:0;line-height:1.65}.lh-ct div{justify-content:flex-start}.lh-tab{width:100%}.inv hr{margin:20px 0 14px}.lh-foot{padding:12px 14px;font-size:12.5px}}
+.qrow{display:grid;grid-template-columns:minmax(0,1fr) 116px auto;gap:6px;align-items:center;margin-bottom:6px}
+.qrow .q_a{font-family:var(--fig);text-align:right}
+.qrow .btn{min-width:36px;font-size:18px;line-height:1}
+#q_rows+div{margin-bottom:2px}
+.lh-gap{margin-top:12px}
 .logo-pv{display:flex;gap:10px;align-items:center;min-height:64px;flex-wrap:wrap}
 .logo-pv span{display:inline-flex;align-items:center;justify-content:center;width:120px;height:64px;border-radius:4px;border:1px solid var(--line);padding:6px}
 .logo-pv .lp-n{background:#0f2f4f;border-color:#0f2f4f}
@@ -353,7 +358,7 @@ var PRESETS = [
   { id: 'c16', n: 'MGT-7 / 7A (ROC)', f: 'Y', m: 11, d: 29, hint: '60 days after the AGM' }
 ];
 var PRESET = {}; PRESETS.forEach(function (p) { PRESET[p.id] = p; });
-var TYPES = ['clients', 'staff', 'tasks', 'pay', 'vp', 'comps'];
+var TYPES = ['clients', 'staff', 'tasks', 'pay', 'vp', 'comps', 'quotes'];
 var ID_RE = /^[A-Za-z0-9_~:@+-]{1,80}$/;
 var LKEY = 'officedesk';
 
@@ -380,6 +385,14 @@ var NORM = {
     if (!Array.isArray(o.rcv) && o.paid === true && amt > 0) rcv = [{ id: 'legacy', amt: amt, tds: 0, date: '', mode: '', ref: '' }];
     return { id: o.id, cid: str(o.cid, 80), cname: str(o.cname, 120), no: str(o.no != null ? o.no : o.inv, 30), date: okDate(o.date) ? o.date : '', due: okDate(o.due) ? o.due : '', desc: str(o.desc, 300), sac: str(o.sac, 8), tx: tx, rate: legacy ? 0 : ([0, 5, 12, 18, 28, 40].indexOf(+o.rate) > -1 ? +o.rate : 0), cgst: cg, sgst: sg, igst: ig, amt: amt, rcv: rcv, note: str(o.note, 500), ct: str(o.ct, 30) };
   },
+  /* a quotation: one or more services with fees, for a client or for a party that is not a client yet */
+  quotes: function (o) {
+    var items = (Array.isArray(o.items) ? o.items : []).map(function (it) { if (!it || typeof it !== 'object') return null; var a = r2(num(it.a)), d = str(it.d, 200); if (!(a >= 0)) a = 0; return d || a ? { d: d || 'Service', a: a } : null; }).filter(Boolean).slice(0, 30);
+    var tx = sum(items, function (i) { return i.a; }), rate = [0, 5, 12, 18, 28, 40].indexOf(+o.rate) > -1 ? +o.rate : 0;
+    var cg = r2(num(o.cgst)) || 0, sg = r2(num(o.sgst)) || 0, ig = r2(num(o.igst)) || 0; if (!rate) cg = sg = ig = 0;
+    var g = str(o.tgstin, 15).toUpperCase().replace(/\s/g, ''), ts = str(o.tstate, 2); if (GST_RE.test(g)) ts = g.slice(0, 2);
+    return { id: o.id, cid: str(o.cid, 80), to: str(o.to, 120), taddr: str(o.taddr, 400), tphone: str(o.tphone, 30), tgstin: g, tstate: STATES[ts] ? ts : '', no: str(o.no, 30), date: okDate(o.date) ? o.date : '', valid: okDate(o.valid) ? o.valid : '', subj: str(o.subj, 200), items: items, sac: str(o.sac, 8), tx: tx, rate: rate, cgst: cg, sgst: sg, igst: ig, amt: r2(tx + cg + sg + ig), terms: str(o.terms, 1500), st: ['open', 'won', 'lost'].indexOf(o.st) > -1 ? o.st : 'open', sd: okDate(o.sd) ? o.sd : '', inv: str(o.inv, 80), ct: str(o.ct, 30) };
+  },
   vp: function (o) {
     var amt = r2(num(o.amt)); if (!(amt >= 0)) amt = 0;
     var pays = Array.isArray(o.pays) ? o.pays.map(normPay).filter(Boolean) : [];
@@ -403,7 +416,7 @@ function normSet(o) {
   if (GST_RE.test(g)) st = g.slice(0, 2);
   return { name: str(o.name, 120), addr: str(o.addr, 400), gstin: g, pan: str(o.pan, 10).toUpperCase() || (GST_RE.test(g) ? g.slice(2, 12) : ''), state: STATES[st] ? st : '', phone: str(o.phone, 30), email: str(o.email, 120), bank: str(o.bank, 120), acname: str(o.acname, 120), acno: str(o.acno, 30), ifsc: str(o.ifsc, 11).toUpperCase(), upi: str(o.upi, 80), prefix: (str(o.prefix, 6).toUpperCase().replace(/[^A-Z0-9-]/g, '')) || 'INV', sac: str(o.sac, 8).replace(/\D/g, ''), rate: [0, 5, 18].indexOf(+o.rate) > -1 ? +o.rate : 18, desc: str(o.desc, 120) || 'Professional fees', terms: str(o.terms, 500),
     tag: str(o.tag, 80), line2: str(o.line2, 80), sgn: str(o.sgn, 60), sgd: str(o.sgd, 60), fee: str(o.fee, 80) || 'Professional Fees', numst: o.numst === 'mon' ? 'mon' : 'fy',
-    logo: logoOk(o.logo) ? o.logo : '', wm: o.wm === 0 || o.wm === false || o.wm === '0' ? 0 : 1 };
+    logo: logoOk(o.logo) ? o.logo : '', wm: o.wm === 0 || o.wm === false || o.wm === '0' ? 0 : 1, qterms: str(o.qterms, 1500) };
 }
 /* the firm's logo, kept small enough for one settings document (PNG keeps a see-through background) */
 var LOGOMAX = 160000;
@@ -467,7 +480,7 @@ function trimCanvas(cv) {
   var o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1;
   o.getContext('2d').drawImage(cv, x0, y0, o.width, o.height, 0, 0, o.width, o.height); return o;
 }
-function blank() { return { clients: [], staff: [], tasks: [], pay: [], vp: [], comps: [], marks: {}, set: normSet({}) }; }
+function blank() { return { clients: [], staff: [], tasks: [], pay: [], vp: [], comps: [], quotes: [], marks: {}, set: normSet({}) }; }
 /* accepts the old Office Desk format (v1) and this one (v2); fixes ids that the sync store would refuse */
 function migrate(o) {
   var out = blank(), map = {};
@@ -485,16 +498,17 @@ function migrate(o) {
   function fix(t, id) { return map[t + ':' + id] || id; }
   out.tasks.forEach(function (x) { x.cid = fix('clients', x.cid); x.sid = fix('staff', x.sid); });
   out.pay.forEach(function (x) { x.cid = fix('clients', x.cid); });
+  out.quotes.forEach(function (x) { x.cid = fix('clients', x.cid); x.inv = fix('pay', x.inv); });
   out.comps.forEach(function (k) { k.cl = k.cl.map(function (c) { return fix('clients', c); }); });
   if (o.marks && typeof o.marks === 'object') Object.keys(o.marks).forEach(function (k) { if (ID_RE.test(k)) out.marks[k] = normMark(o.marks[k]); });
   out.set = normSet(o.set || { name: o.firm });
   return out;
 }
-function countRecords(m) { return m.clients.length + m.staff.length + m.tasks.length + m.pay.length + m.vp.length + m.comps.filter(function (k) { return k.cl.length; }).length; }
+function countRecords(m) { return m.clients.length + m.staff.length + m.tasks.length + m.pay.length + m.vp.length + (m.quotes || []).length + m.comps.filter(function (k) { return k.cl.length; }).length; }
 
 /* ================= state + storage ================= */
 var S = blank(), MODE = 'boot', DB = null, DL = null, ROLE = 'admin', LOADED = {}, PEND = 0, SYNCERR = '', LOCALONLY = null, RT = null;
-var PATH = { clients: 'clients', staff: 'staff', tasks: 'tasks', pay: 'adm/data/pay', vp: 'adm/data/vp', comps: 'adm/data/comps', marks: 'adm/data/marks' }, SETPATH = 'adm/settings';
+var PATH = { clients: 'clients', staff: 'staff', tasks: 'tasks', pay: 'adm/data/pay', vp: 'adm/data/vp', comps: 'adm/data/comps', quotes: 'adm/data/quotes', marks: 'adm/data/marks' }, SETPATH = 'adm/settings';
 var MARKS_REMOTE = {}, UNSUB = {};
 
 function loadLocal() {
@@ -503,7 +517,7 @@ function loadLocal() {
   try { return { data: migrate(JSON.parse(raw)) }; } catch (e) { lsSet(LKEY + '_unreadable', raw); return { data: blank(), broken: true }; }
 }
 function saveLocal() {
-  var ok = lsSet(LKEY, JSON.stringify({ app: 'office-desk', ver: 2, clients: S.clients, staff: S.staff, tasks: S.tasks, pay: S.pay, vp: S.vp, comps: S.comps, marks: S.marks, set: S.set }));
+  var ok = lsSet(LKEY, JSON.stringify({ app: 'office-desk', ver: 2, clients: S.clients, staff: S.staff, tasks: S.tasks, pay: S.pay, vp: S.vp, comps: S.comps, quotes: S.quotes, marks: S.marks, set: S.set }));
   if (!ok) toast('This browser did not save the change. Download a backup now.');
 }
 function upsert(t, rec) { var a = S[t].slice(), i = -1; for (var k = 0; k < a.length; k++) if (a[k].id === rec.id) { i = k; break; } if (i > -1) a[i] = rec; else a.push(rec); S[t] = a; }
@@ -596,7 +610,7 @@ function writeFailed(e) {
   SYNCERR = msg; toast(msg); schedule();
 }
 function subscribe() {
-  var list = ROLE === 'admin' ? ['clients', 'staff', 'tasks', 'pay', 'vp', 'comps', 'marks'] : ['clients', 'staff', 'tasks'];
+  var list = ROLE === 'admin' ? ['clients', 'staff', 'tasks', 'pay', 'vp', 'comps', 'quotes', 'marks'] : ['clients', 'staff', 'tasks'];
   list.forEach(function (t) { listen(t, 0); });
   if (ROLE === 'admin') listenSet(0);
 }
@@ -632,7 +646,7 @@ function subFailed(e, again, tries) {
   head();
 }
 function serverSaid(snap, hasData) { var md = snap && snap.metadata; return !md || !md.fromCache || !!hasData || !navigator.onLine; }
-function allLoaded() { var need = ROLE === 'admin' ? ['clients', 'staff', 'tasks', 'pay', 'vp', 'comps', 'marks', 'set'] : ['clients', 'staff', 'tasks']; return need.every(function (k) { return LOADED[k]; }); }
+function allLoaded() { var need = ROLE === 'admin' ? ['clients', 'staff', 'tasks', 'pay', 'vp', 'comps', 'quotes', 'marks', 'set'] : ['clients', 'staff', 'tasks']; return need.every(function (k) { return LOADED[k]; }); }
 function loading(t) { return MODE === 'boot' || (MODE === 'db' && !LOADED[t]); }
 
 /* ================= lookups + calculations ================= */
@@ -679,6 +693,28 @@ function nextNo(date, exceptId) {
   S.pay.forEach(function (p) { if (p.id === exceptId) return; if (mon && fyStart(p.date || p.due) !== fy) return; var no = p.no.toUpperCase(); if (no.indexOf(B) === 0) { var n = parseInt(no.slice(B.length), 10); if (n > mx) mx = n; } });
   var s = String(mx + 1); while (s.length < (mon ? 2 : 3)) s = '0' + s; return base + s;
 }
+/* quotation numbers: PREFIX/QTN/26-27/001, a serial for the financial year */
+function qBase(date) { return (S.set.prefix || 'INV') + '/QTN/' + fyShort(fyStart(date)) + '/'; }
+function nextQNo(date, exceptId) {
+  var base = qBase(date), B = base.toUpperCase(), mx = 0;
+  S.quotes.forEach(function (q) { if (q.id === exceptId) return; var no = q.no.toUpperCase(); if (no.indexOf(B) === 0) { var n = parseInt(no.slice(B.length), 10); if (n > mx) mx = n; } });
+  var s = String(mx + 1); while (s.length < 3) s = '0' + s; return base + s;
+}
+function qNoTaken(no, exceptId) { var k = no.trim().toUpperCase(); return S.quotes.filter(function (q) { return q.id !== exceptId && q.no.toUpperCase() === k; })[0] || null; }
+var QDAYS = 15;
+var QTERMS = '1. Out-of-pocket expenses and government fees, if any, are extra at actuals.\n2. 50% of the fees is payable in advance and the balance on completion of the work.\n3. Work starts after we receive your confirmation and the documents needed.';
+/* who a quotation is for: the saved client, or the party details typed on the quotation */
+function qParty(q) { var c = q.cid && client(q.cid); return c || { id: '', name: q.to || 'Party', phone: q.tphone, addr: q.taddr, gstin: q.tgstin, state: q.tstate, grp: '' }; }
+function qName(q) { var c = q.cid && client(q.cid); return c ? c.name : (q.to || 'Party') + (q.cid ? ' (deleted)' : ''); }
+function qinfo(q) { if (q.st === 'won' || q.st === 'lost') return { st: q.st, left: 0 }; var left = q.valid ? daysBetween(today(), q.valid) : 999; return { st: left < 0 ? 'exp' : 'open', left: left }; }
+function qTag(q) {
+  var i = qinfo(q);
+  if (i.st === 'won') return '<span class="tag ok">Accepted</span>';
+  if (i.st === 'lost') return '<span class="tag">Declined</span>';
+  if (i.st === 'exp') return '<span class="tag bad">Expired</span>';
+  return i.left <= 3 ? '<span class="tag warn">' + (i.left === 0 ? 'Expires today' : 'Expires in ' + plural(i.left, 'day')) + '</span>' : '<span class="tag warn">Awaiting reply</span>';
+}
+function qDesc(q) { return (q.subj || q.items.map(function (x) { return x.d; }).join(', ')).slice(0, 300); }
 function noTaken(no, date, exceptId) { var k = no.trim().toUpperCase(), fy = fyStart(date); return S.pay.filter(function (p) { return p.id !== exceptId && p.no.trim().toUpperCase() === k && fyStart(p.date || p.due) === fy; })[0] || null; }
 
 /* compliance periods. M key YYYY-MM (return month), Q key YYYY-Qn (FY start year), Y key YYYY (due year) */
@@ -758,6 +794,10 @@ function invMsg(p) {
   var c = client(p.cid), pi = pinfo(p), name = c ? c.name : p.cname;
   return 'Namaste ' + name + ', Invoice ' + (p.no || '-') + (p.date ? ' dated ' + fmt(p.date, 1) : '') + ': ' + inr(p.amt) + (pi.bal > 0 && pi.bal < p.amt ? ' (balance ' + inr(pi.bal) + ')' : '') + '.' + (p.due && pi.bal > 0 ? ' Due date: ' + fmt(p.due, 1) + '.' : '') + (S.set.upi && pi.bal > 0 ? ' UPI: ' + S.set.upi + '.' : '') + ' Dhanyavaad.' + sign();
 }
+function quoteMsg(q) {
+  var tax = r2(q.cgst + q.sgst + q.igst), nm = q.cid && client(q.cid) ? client(q.cid).name : q.to;
+  return 'Namaste ' + nm + ', hamari quotation ' + (q.no || '') + (q.subj ? ' (' + q.subj + ')' : '') + ' bhej rahe hain. Total fees ' + inr(q.amt) + (tax > 0 ? ' (GST sahit)' : '') + '.' + (q.valid ? ' Ye quotation ' + fmt(q.valid, 1) + ' tak valid hai.' : '') + ' Kripya dekh kar confirm karein. Dhanyavaad.' + sign();
+}
 function docsMsg(c, list) {
   var t = today();
   return 'Namaste ' + c.name + ', ye filings pending hain: ' + list.map(function (e) { return e.k.n + ' (' + pLabel(e.k, e.key) + ') - last date ' + fmt(e.due, 1) + (e.due < t ? ', nikal chuki hai' : ''); }).join('; ') + '. Kripya zaroori documents jald se jald bhej dein, taaki time par file ho sake. Dhanyavaad.' + sign();
@@ -787,33 +827,35 @@ function linkBtn(href, act, label, cls, id) { return '<a class="btn' + (cls ? ' 
 function waPick(msg) { return 'https://wa.me/?text=' + encodeURIComponent(msg); }
 function sendSheet(c, msg, rec, p) {
   var g = c.grp, my = SEND = { c: c, msg: msg, rec: rec, p: p, pdf: null }, fs = !!p && canShareFiles(), nm = c.name, b = [], st, extra = '';
+  /* someone who is not a client yet has no group: their own WhatsApp number is used */
+  var what = p && p.items ? 'quotation' : 'invoice', party = !c.id, direct = party ? wa(c.phone) : '', where = party ? 'chat of ' : 'group of ';
   var wait = '" disabled>Preparing PDF…</button>', pre = ' (on the WhatsApp page, click Continue to chat if it asks)';
   if (CANSHARE) {
     if (fs) b.push('<button class="btn pri" type="button" data-a="sendPdf" id="send_pdf' + wait);
     b.push('<button class="btn' + (fs ? '' : ' pri') + '" type="button" data-a="sendShare">' + (p ? 'Share message only' : 'Share in WhatsApp') + '</button>');
-    b.push(g ? linkBtn(g, 'sendGroup', 'Copy and open group', '') : linkBtn(waPick(msg), 'sendPick', 'Open WhatsApp', ''));
-    st = ['Tap ' + (fs ? 'Share invoice PDF' : 'Share in WhatsApp') + ' and pick WhatsApp.', 'Choose the group of ' + nm + '.', 'Tap Send.'];
+    b.push(g ? linkBtn(g, 'sendGroup', 'Copy and open group', '') : direct ? linkBtn(wa(c.phone, msg), 'sendPick', 'Open chat with ' + esc(nm), '') : linkBtn(waPick(msg), 'sendPick', 'Open WhatsApp', ''));
+    st = ['Tap ' + (fs ? 'Share ' + what + ' PDF' : 'Share in WhatsApp') + ' and pick WhatsApp.', 'Choose the ' + where + nm + '.', 'Tap Send.'];
   } else if (p) {
     if (fs) b.push('<button class="btn pri" type="button" data-a="sendPdf" id="send_pdf' + wait);
-    b.push(g ? linkBtn(g, 'sendAll', 'Preparing PDF…', (fs ? '' : 'pri') + ' wait', 'send_all') : '<button class="btn' + (fs ? '' : ' pri') + '" type="button" data-a="sendAll" id="send_all' + wait);
-    st = fs ? ['Click Share PDF to WhatsApp and pick WhatsApp.', 'Choose the group of ' + nm + '.', 'Click Send.']
-      : g ? ['Click the button: the PDF downloads, the message is copied and the group opens' + pre + '.', 'Drag the PDF from your downloads into the chat, or use Attach → Document.', 'Press Ctrl+V to add the message, then Enter.']
-      : ['Click the button: the PDF downloads and the message is copied.', 'Open the group of ' + nm + ' in WhatsApp and drag the PDF in, or use Attach → Document.', 'Press Ctrl+V to add the message, then Enter.'];
-    if (fs) extra = '<p class="meta">No WhatsApp in the share window? Use the other button: it downloads the PDF, copies the message' + (g ? ' and opens the group' : '') + '.</p>';
+    b.push(g || direct ? linkBtn(g || direct, 'sendAll', 'Preparing PDF…', (fs ? '' : 'pri') + ' wait', 'send_all') : '<button class="btn' + (fs ? '' : ' pri') + '" type="button" data-a="sendAll" id="send_all' + wait);
+    st = fs ? ['Click Share PDF to WhatsApp and pick WhatsApp.', 'Choose the ' + where + nm + '.', 'Click Send.']
+      : g || direct ? ['Click the button: the PDF downloads, the message is copied and the ' + (g ? 'group' : 'chat with ' + nm) + ' opens' + pre + '.', 'Drag the PDF from your downloads into the chat, or use Attach → Document.', 'Press Ctrl+V to add the message, then Enter.']
+      : ['Click the button: the PDF downloads and the message is copied.', 'Open the ' + where + nm + ' in WhatsApp and drag the PDF in, or use Attach → Document.', 'Press Ctrl+V to add the message, then Enter.'];
+    if (fs) extra = '<p class="meta">No WhatsApp in the share window? Use the other button: it downloads the PDF, copies the message' + (g ? ' and opens the group' : direct ? ' and opens the chat' : '') + '.</p>';
   } else {
     b.push(g ? linkBtn(g, 'sendGroup', 'Copy and open group', 'pri') : '<button class="btn pri" type="button" data-a="sendCopy">Copy message</button>');
-    if (!g) b.push(linkBtn(waPick(msg), 'sendPick', 'Open WhatsApp', ''));
+    if (!g) b.push(direct ? linkBtn(wa(c.phone, msg), 'sendPick', 'Open chat with ' + esc(nm), '') : linkBtn(waPick(msg), 'sendPick', 'Open WhatsApp', ''));
     st = g ? ['Click Copy and open group' + pre + '.', 'Click the message box in the group and press Ctrl+V.', 'Press Enter to send.']
-      : ['Click Copy message.', 'Open the group of ' + nm + ' in WhatsApp, click the message box and press Ctrl+V.', 'Press Enter to send.'];
+      : ['Click Copy message.', 'Open the ' + where + nm + ' in WhatsApp, click the message box and press Ctrl+V.', 'Press Enter to send.'];
   }
-  if (!g) extra += '<p class="meta">Save the group link in the details of ' + esc(nm) + ' and this opens their group in one click.</p>';
-  sheet('Send on WhatsApp', '<p class="meta">' + (g ? 'For the WhatsApp group of ' + esc(nm) + '.' : 'No group link is saved for ' + esc(nm) + '.') + '</p>' +
+  if (!g) extra += party ? '<p class="meta">' + esc(nm) + ' is not a client yet, so this goes to ' + (direct ? 'their own WhatsApp number' : 'the chat you choose') + '. When they accept, add them as a client and save their group link.</p>' : '<p class="meta">Save the group link in the details of ' + esc(nm) + ' and this opens their group in one click.</p>';
+  sheet('Send on WhatsApp', '<p class="meta">' + (g ? 'For the WhatsApp group of ' + esc(nm) + '.' : party ? 'For ' + esc(nm) + (direct ? ' on WhatsApp (' + esc(c.phone) + ')' : '') + '.' : 'No group link is saved for ' + esc(nm) + '.') + '</p>' +
     '<p class="msgbox" id="send_msg">' + esc(msg) + '</p><ol class="steps">' + st.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' +
     '<div class="acts">' + b.join('') + '</div><p class="meta" id="send_note" hidden></p>' + extra);
   if (p) pdfData(p).then(function (d) {
     if (SEND !== my) return; my.pdf = d;
-    var x = $('#send_pdf'); if (x) { x.disabled = false; x.textContent = CANSHARE ? 'Share invoice PDF' : 'Share PDF to WhatsApp'; }
-    var y = $('#send_all'); if (y) { y.disabled = false; y.classList.remove('wait'); y.textContent = g ? 'Download PDF, copy message, open group' : 'Download PDF and copy message'; }
+    var x = $('#send_pdf'); if (x) { x.disabled = false; x.textContent = CANSHARE ? 'Share ' + what + ' PDF' : 'Share PDF to WhatsApp'; }
+    var y = $('#send_all'); if (y) { y.disabled = false; y.classList.remove('wait'); y.textContent = g ? 'Download PDF, copy message, open group' : direct ? 'Download PDF, copy message, open chat' : 'Download PDF and copy message'; }
   }, function () { if (SEND !== my) return; ['#send_pdf', '#send_all'].forEach(function (q) { var x = $(q); if (x) x.textContent = 'PDF could not be made'; }); });
 }
 function sendMsgFor(c, t, ref) {
@@ -841,7 +883,7 @@ function copyForGroup(text, okMsg) {
 }
 function sendNote(t) { var n = $('#send_note'); if (n) { n.textContent = t; n.hidden = false; } }
 function shareFail(e) { if (e && e.name === 'AbortError') return; sendNote('The share menu did not open here. Use ' + (SEND && SEND.c.grp ? 'Copy and open group' : 'Open WhatsApp') + ' instead.'); }
-function pdfName(p) { var c = client(p.cid); return ('Invoice ' + (p.no || '') + ' ' + (c ? c.name : p.cname || '')).replace(/[^A-Za-z0-9 _-]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Invoice'; }
+function pdfName(p) { var qt = !!p.items, c = client(p.cid), w = qt ? 'Quotation' : 'Invoice'; return (w + ' ' + (p.no || '') + ' ' + (qt ? qName(p) : c ? c.name : p.cname || '')).replace(/[^A-Za-z0-9 _-]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || w; }
 function pdfData(p) { return loadScript(PDFLIB).then(function () { return buildPdf(p); }).then(function (bytes) { var name = pdfName(p) + '.pdf'; return { bytes: bytes, name: name, file: typeof File === 'function' ? new File([bytes], name, { type: 'application/pdf' }) : null }; }); }
 
 /* ---------- Today's reminders: who to remind, with the message ready ---------- */
@@ -915,9 +957,9 @@ function deskView() {
 }
 
 /* ================= view state + rendering ================= */
-var TABS = [['home', 'Home'], ['clients', 'Clients'], ['tasks', 'Work'], ['pay', 'Billing'], ['vendor', 'Creditors'], ['comp', 'Compliance'], ['staff', 'Staff']];
-var V = { tab: lsGet('od_tab') || 'home', d: null }, QS = { clients: '', tasks: '', pay: '', vendor: '' };
-var F = { pay: 'open', vend: 'open', tstaff: '', tdone: false, more: {} };
+var TABS = [['home', 'Home'], ['clients', 'Clients'], ['tasks', 'Work'], ['pay', 'Billing'], ['quote', 'Quotations'], ['vendor', 'Creditors'], ['comp', 'Compliance'], ['staff', 'Staff']];
+var V = { tab: lsGet('od_tab') || 'home', d: null }, QS = { clients: '', tasks: '', pay: '', quote: '', vendor: '' };
+var F = { pay: 'open', quote: 'open', vend: 'open', tstaff: '', tdone: false, more: {} };
 var RQ = 0, DEFER = false, LASTKEY = '';
 function tabsFor() { if (FBM && MODE !== 'db') return []; if (ROLE === 'admin') return TABS; if (ROLE === 'staff') return TABS.slice(0, 3); return TABS.slice(0, 1); }
 function schedule() { if (RQ) return; RQ = setTimeout(function () { RQ = 0; render(); }, 25); }
@@ -978,6 +1020,7 @@ function tool() {
     case 'clients': return ROLE === 'viewer' ? '' : s('Search name, phone, GSTIN, PAN', 'newClient', '+ Client');
     case 'tasks': return s('Search work or client', 'newTask', '+ Work');
     case 'pay': return s('Search client or invoice no.', 'newInv', '+ Invoice');
+    case 'quote': return s('Search party, quotation no. or service', 'newQuote', '+ Quotation');
     case 'vendor': return s('Search party or bill no.', 'newBill', '+ Bill');
     case 'comp': return '<div class="tbar"><button class="btn pri" data-a="newComp">+ Compliance</button><button class="btn" data-a="presets">Standard due dates</button></div>';
     case 'staff': return '<div class="tbar"><button class="btn pri" data-a="newStaff">+ Staff</button></div>';
@@ -986,9 +1029,9 @@ function tool() {
 }
 function body() {
   if (FBM && MODE !== 'db') return authView();
-  if (V.d) { var dv = { client: clientDetail, inv: invDetail, comp: compDetail }[V.d.k]; if (dv) return dv(); }
+  if (V.d) { var dv = { client: clientDetail, inv: invDetail, quote: quoteDetail, comp: compDetail }[V.d.k]; if (dv) return dv(); }
   if (MODE === 'db' && ROLE === 'viewer') return '<div class="note">You can only view this page, so office data stays hidden. Ask the office owner to give you Contributor access to see clients and work.</div>';
-  return ({ home: homeView, clients: clientsView, tasks: tasksView, pay: payView, vendor: vendorView, comp: compView, staff: staffView }[V.tab] || homeView)();
+  return ({ home: homeView, clients: clientsView, tasks: tasksView, pay: payView, quote: quoteView, vendor: vendorView, comp: compView, staff: staffView }[V.tab] || homeView)();
 }
 
 /* ---------- Home ---------- */
@@ -1011,6 +1054,8 @@ function homeView() {
   var ce = compEntries().filter(function (e) { return e.st.pending.length && (e.over || daysBetween(t, e.due) <= 7); });
   if (ce.length) att += '<h2>Filings due</h2>' + ce.slice(0, 8).map(compCard).join('');
   if (over.length) att += '<h2>Overdue debtors</h2>' + over.sort(function (a, b) { return pinfo(b).late - pinfo(a).late; }).slice(0, 5).map(invCard).join('') + (over.length > 5 ? '<button class="btn more" data-a="tab" data-id="pay" data-f="over">See all ' + over.length + ' overdue invoices</button>' : '');
+  var fq = S.quotes.filter(function (x) { return x.st === 'open' && x.valid && daysBetween(t, x.valid) <= 3 && daysBetween(x.valid, t) <= 30; }).sort(function (a, b) { return a.valid < b.valid ? -1 : 1; });
+  if (fq.length) att += '<h2>Quotations to follow up</h2>' + fq.slice(0, 5).map(quoteCard).join('') + (fq.length > 5 ? '<button class="btn more" data-a="tab" data-id="quote">See all ' + fq.length + ' quotations awaiting reply</button>' : '');
   var soon = tasks.filter(function (x) { return x.due && daysBetween(t, x.due) <= 3; }).sort(function (a, b) { return a.due < b.due ? -1 : 1; });
   if (soon.length) att += '<h2>Work due in 3 days</h2>' + soon.slice(0, 6).map(function (x) { return taskCard(x, true); }).join('');
   var y = +t.slice(0, 4), m = +t.slice(5, 7), pm = m === 1 ? 12 : m - 1, py = m === 1 ? y - 1 : y, pk = py + '-' + pad(pm), dep = tdsDeposit(py, pm);
@@ -1067,8 +1112,10 @@ function clientDetail() {
     var tot = sum(open, function (p) { return pinfo(p).bal; }), tds = sum(inv, function (p) { return fyStart(p.date || t) === fyStart(t) ? pinfo(p).tds : 0; });
     h += '<h2>Outstanding invoices <span class="meta">' + (open.length ? inr(tot) + dc('Dr') : 'Nil') + '</span></h2>';
     h += open.length ? open.map(invCard).join('') : '<div class="empty">No unpaid invoices.' + (inv.length ? ' ' + plural(inv.length, 'invoice') + ' fully paid.' : '') + '</div>';
-    h += '<div class="acts"><button class="btn pri" data-a="newInv" data-id="' + c.id + '">+ New invoice</button>' + (open.length ? sendBtn(c, 'Send statement', '', 'stmt') : '') + (inv.length - open.length ? '<button class="btn" data-a="clientPaid" data-id="' + c.id + '">Paid invoices (' + (inv.length - open.length) + ')</button>' : '') + '</div>';
+    h += '<div class="acts"><button class="btn pri" data-a="newInv" data-id="' + c.id + '">+ New invoice</button><button class="btn" data-a="newQuote" data-id="' + c.id + '">+ Quotation</button>' + (open.length ? sendBtn(c, 'Send statement', '', 'stmt') : '') + (inv.length - open.length ? '<button class="btn" data-a="clientPaid" data-id="' + c.id + '">Paid invoices (' + (inv.length - open.length) + ')</button>' : '') + '</div>';
     if (tds) h += '<p class="meta">TDS deducted by this client in FY ' + fyLabel(fyStart(t)) + ': ' + inr(tds) + ' (match with Form 26AS).</p>';
+    var cq = S.quotes.filter(function (x) { return x.cid === c.id; }).sort(function (a, b) { return (a.st === 'open') !== (b.st === 'open') ? (a.st === 'open' ? -1 : 1) : (b.date || '') < (a.date || '') ? -1 : 1; });
+    if (cq.length) h += '<h2>Quotations</h2>' + cq.slice(0, 5).map(quoteCard).join('') + (cq.length > 5 ? '<p class="meta">' + plural(cq.length - 5, 'older quotation') + ' in the Quotations tab.</p>' : '');
     var ks = S.comps.filter(function (k) { return k.cl.indexOf(c.id) > -1; });
     if (ks.length) h += '<h2>Compliance</h2>' + ks.map(function (k) { var key = pUpcoming(k, t), st = pState(k, key), filed = !!st.f[c.id]; return '<div class="card top"><div class="grow"><b>' + esc(k.n) + '</b><div class="meta">' + esc(pLabel(k, key)) + ' · last date ' + fmt(st.due, 1) + '</div></div>' + (filed ? '<span class="tag ok">Filed</span>' : '<button class="btn sm" data-a="markOne" data-id="' + k.id + '" data-k="' + key + '" data-c="' + c.id + '">Mark filed</button>') + '</div>'; }).join('');
   }
@@ -1132,30 +1179,87 @@ function payView() {
   var n = lim('pay');
   return h + '<p class="meta">' + plural(L.length, 'invoice') + '</p>' + (L.length ? L.slice(0, n).map(invCard).join('') + moreBtn('pay', n, L.length) : '<div class="empty">No invoices here.</div>');
 }
+/* ---------- Quotations ---------- */
+function quoteCard(q) {
+  var i = qinfo(q), live = q.st === 'open';
+  return '<div class="card led' + (i.st === 'exp' ? ' warnb' : '') + '">' + ledDate(q.date) + '<div class="ld-b"><div class="top"><div class="grow"><button class="lnk" data-a="openQuote" data-id="' + q.id + '">' + esc(qName(q)) + '</button>' +
+    '<div class="meta">' + esc(q.no || 'No number') + (q.subj ? ' · ' + esc(q.subj) : '') + '</div>' + (live && q.valid ? '<div class="meta">Valid till ' + fmt(q.valid) + '</div>' : '') + (!q.cid ? '<div class="meta">Not a client yet</div>' : '') + '</div>' +
+    '<div class="amt"><span class="fig">' + figH(q.amt) + '</span>' + qTag(q) + '</div></div>' +
+    '<div class="acts">' + (live ? '<button class="btn" data-a="sendQ" data-id="' + q.id + '">Send on WhatsApp</button>' : '') + (q.st === 'won' && !q.inv ? '<button class="btn pri" data-a="quoteInv" data-id="' + q.id + '">Make invoice</button>' : '') + '<button class="btn" data-a="openQuote" data-id="' + q.id + '">' + (live ? 'Quotation' : 'View quotation') + '</button></div></div></div>';
+}
+function quoteView() {
+  var t = today(), fy = fyStart(t), q = QS.quote.toLowerCase(), amt = function (x) { return x.amt; };
+  var open = S.quotes.filter(function (x) { return x.st === 'open'; }), live = open.filter(function (x) { return qinfo(x).st === 'open'; });
+  var follow = open.filter(function (x) { return qinfo(x).left <= 7; }), won = S.quotes.filter(function (x) { return x.st === 'won'; });
+  var wonFy = won.filter(function (x) { return fyStart(x.sd || x.date) === fy; }), toBill = won.filter(function (x) { return !x.inv || !find('pay', x.inv); });
+  var h = '<div class="stats four">' +
+    stat('Awaiting reply', inr(sum(live, amt)), plural(live.length, 'quotation') + ' still valid') +
+    stat('Follow up', String(follow.length), follow.length ? 'expired or expiring in 7 days' : 'Nothing to chase', follow.length ? 'bad' : '') +
+    stat('Accepted', inr(sum(wonFy, amt)), plural(wonFy.length, 'quotation') + ' in FY ' + fyLabel(fy)) +
+    stat('To invoice', inr(sum(toBill, function (x) { return x.amt; })), toBill.length ? plural(toBill.length, 'accepted quotation') + ' not billed yet' : 'All accepted work billed') + '</div>';
+  h += '<div class="chips" role="group" aria-label="Filter quotations">' + [['open', 'Awaiting reply'], ['won', 'Accepted'], ['lost', 'Declined'], ['all', 'All']].map(function (f) { return '<button class="chip" data-a="fquote" data-id="' + f[0] + '" aria-pressed="' + (F.quote === f[0]) + '">' + f[1] + '</button>'; }).join('') + '</div>';
+  if (!S.quotes.length) return h + emptyBox('quotes', 'No quotations yet. Tap + Quotation to send your fees for new work, to a client or to someone who is not a client yet.');
+  var L = S.quotes.filter(function (x) { if (F.quote !== 'all' && x.st !== F.quote) return false; return !q || has(qName(x), q) || has(x.no, q) || has(x.subj, q) || x.items.some(function (it) { return has(it.d, q); }); });
+  L.sort(function (a, b) { if (F.quote === 'open') return (a.valid || '9999') < (b.valid || '9999') ? -1 : (a.valid || '9999') > (b.valid || '9999') ? 1 : 0; return (b.sd || b.date || '') < (a.sd || a.date || '') ? -1 : 1; });
+  var n = lim('quote');
+  return h + '<p class="meta">' + plural(L.length, 'quotation') + '</p>' + (L.length ? L.slice(0, n).map(quoteCard).join('') + moreBtn('quote', n, L.length) : '<div class="empty">No quotations here.</div>');
+}
+function quoteDetail() {
+  var q = find('quotes', V.d.id); if (!q) { V.d = null; return '<div class="empty">This quotation was deleted.</div>'; }
+  var i = qinfo(q), inv = q.inv && find('pay', q.inv);
+  var h = '<div class="dhead"><h2>Quotation ' + esc(q.no || '') + '</h2><div class="meta">' + esc(qName(q)) + ' · ' + qTag(q) + (q.sd && q.st !== 'open' ? ' on ' + fmt(q.sd, 1) : '') + '</div></div>';
+  if (!S.set.name) h += '<div class="note">Your firm name and address are missing on this quotation.<div class="acts"><button class="btn pri" data-a="settings">Add firm details</button></div></div>';
+  if (q.st === 'won') h += '<div class="note">' + (inv ? 'Invoice ' + esc(inv.no) + ' was made from this quotation.' : 'Accepted. Make the invoice when the work is done, or now for an advance; the fees are filled in from this quotation.') +
+    '<div class="acts">' + (inv ? '<button class="btn pri" data-a="openInv" data-id="' + inv.id + '">Open invoice ' + esc(inv.no) + '</button>' : '<button class="btn pri" data-a="quoteInv" data-id="' + q.id + '">Make invoice</button>') + (!q.cid || !client(q.cid) ? '<button class="btn" data-a="quoteClient" data-id="' + q.id + '">Add ' + esc(q.to) + ' as client</button>' : '') + '</div></div>';
+  h += '<div class="acts"><button class="btn pri" data-a="qpdf" data-id="' + q.id + '">Download PDF</button><button class="btn" data-a="sendQ" data-id="' + q.id + '">Send on WhatsApp</button>' +
+    (q.st === 'open' ? '<button class="btn" data-a="quoteWon" data-id="' + q.id + '">Mark accepted</button><button class="btn" data-a="quoteLost" data-id="' + q.id + '">Mark declined</button>' : !inv ? '<button class="btn" data-a="quoteReopen" data-id="' + q.id + '">Reopen</button>' : '') +
+    '<button class="btn" data-a="editQuote" data-id="' + q.id + '">Edit</button><button class="btn" data-a="copyQuote" data-id="' + q.id + '">Duplicate</button></div>';
+  if (i.st === 'exp') h += '<p class="meta">This quotation expired on ' + fmt(q.valid, 1) + '. Edit it and give a new Valid till date before sending it again.</p>';
+  else h += '<p class="meta">To share the quotation, download the PDF and attach it in WhatsApp or email.</p>';
+  return h + docPaper(quoteData(q));
+}
 function dmy(d) { return okDate(d) ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : '-'; }
 function addrLines(v) { return String(v || '').split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean); }
 /* what the invoice prints, in the order of the firm's own bill: letterhead band, Invoice No., To + dates,
    Description of Services, Particulars / Amount table, Amount in Words, Bank Details, signatory, address band.
    The screen paper and the PDF are both drawn from this. */
+function firmParts() {
+  var s = S.set, firm = s.name || 'Your firm name';
+  return { s: s, firm: firm, tag: s.tag, line2: s.line2, phone: s.phone, email: s.email, ids: s.gstin ? 'GSTIN: ' + s.gstin : s.pan ? 'PAN: ' + s.pan : '', foot: addrLines(s.addr).join(', '),
+    bank: [['Bank Name:', s.bank], ['Account Name:', s.acname], ['Account Number:', s.acno], ['IFSC Code:', s.ifsc], ['UPI ID:', s.upi]].filter(function (x) { return x[1]; }),
+    sign: s.sgn || s.sgd ? [s.sgn, s.sgd].filter(Boolean) : ['For ' + firm] };
+}
+function toLines(c) { var to = [c.name].concat(addrLines(c.addr)).map(function (l) { return l.toUpperCase(); }); if (c.gstin) to.push('GSTIN: ' + c.gstin); return to; }
+function posOf(c) { return c.state || (GST_RE.test(c.gstin || '') ? c.gstin.slice(0, 2) : '') || S.set.state; }
+function taxRows(rows, x) { if (x.cgst) rows.push(['CGST @ ' + (x.rate / 2) + '%', x.cgst], ['SGST @ ' + (x.rate / 2) + '%', x.sgst]); if (x.igst) rows.push(['IGST @ ' + x.rate + '%', x.igst]); }
 function billData(p) {
-  var s = S.set, c = client(p.cid) || { name: p.cname || 'Client', addr: '', gstin: '', pan: '', state: '' }, pi = pinfo(p), tax = r2(p.cgst + p.sgst + p.igst);
-  var pos = c.state || (GST_RE.test(c.gstin) ? c.gstin.slice(0, 2) : '') || s.state;
-  var to = [c.name].concat(addrLines(c.addr)).map(function (l) { return l.toUpperCase(); });
-  if (c.gstin) to.push('GSTIN: ' + c.gstin);
+  var s = S.set, c = client(p.cid) || { name: p.cname || 'Client', addr: '', gstin: '', pan: '', state: '' }, pi = pinfo(p), tax = r2(p.cgst + p.sgst + p.igst), pos = posOf(c);
   var when = [['Invoice Date:', dmy(p.date)]];
   if (p.due) when.push(['Due Date:', dmy(p.due)]);
   if (tax > 0 && pos) when.push(['Place of Supply:', stateName(pos)]);
-  var rows = [[s.fee || 'Professional Fees', p.tx]];
-  if (p.cgst) rows.push(['CGST @ ' + (p.rate / 2) + '%', p.cgst], ['SGST @ ' + (p.rate / 2) + '%', p.sgst]);
-  if (p.igst) rows.push(['IGST @ ' + p.rate + '%', p.igst]);
-  rows.push(['Total', p.amt, 1]);
+  var rows = [[s.fee || 'Professional Fees', p.tx]]; taxRows(rows, p); rows.push(['Total', p.amt, 1]);
   if (pi.rec || pi.tds) { if (pi.rec) rows.push(['Less: Received', pi.rec]); if (pi.tds) rows.push(['Less: TDS deducted', pi.tds]); rows.push(['Balance Due', pi.bal, 1]); }
-  var bank = [['Bank Name:', s.bank], ['Account Name:', s.acname], ['Account Number:', s.acno], ['IFSC Code:', s.ifsc], ['UPI ID:', s.upi]].filter(function (x) { return x[1]; });
-  var firm = s.name || 'Your firm name';
-  return { s: s, c: c, pi: pi, tax: tax, title: tax > 0 ? 'TAX INVOICE' : '', to: to, when: when, desc: p.desc || s.desc || 'Professional fees', sac: s.gstin && p.sac ? p.sac : '',
-    rows: rows, words: amountWords(p.amt), bank: bank, qr: !!(s.upi && pi.bal > 0), paid: pi.bal <= 0 && p.amt > 0, paidOn: okDate(pi.last) ? fmt(pi.last, 1).toUpperCase() : '',
-    note: [p.note, s.terms].filter(Boolean).join(' · '), sign: s.sgn || s.sgd ? [s.sgn, s.sgd].filter(Boolean) : ['For ' + firm],
-    firm: firm, tag: s.tag, line2: s.line2, phone: s.phone, email: s.email, ids: s.gstin ? 'GSTIN: ' + s.gstin : s.pan ? 'PAN: ' + s.pan : '', foot: addrLines(s.addr).join(', ') };
+  var desc = p.desc || s.desc || 'Professional fees', sac = s.gstin && p.sac ? p.sac : '', qr = !!(s.upi && pi.bal > 0);
+  return Object.assign(firmParts(), { kind: 'inv', pi: pi, tax: tax, title: tax > 0 ? 'TAX INVOICE' : '', noLabel: 'Invoice No.:', no: p.no, to: toLines(c), when: when, desc: desc, sac: sac,
+    intro: [{ h: 'Description of Services:', l: [desc].concat(sac ? ['SAC: ' + sac] : []) }], rows: rows, words: amountWords(p.amt), mid: [],
+    qr: qr, upi: qr ? upiLink(p) : '', bal: pi.bal, paid: pi.bal <= 0 && p.amt > 0, paidOn: okDate(pi.last) ? fmt(pi.last, 1).toUpperCase() : '', note: [p.note, s.terms].filter(Boolean).join(' · ') });
+}
+/* a quotation in the same letterhead: QUOTATION, Quotation No., To with Date and Valid Till, Subject, the services
+   with their fees, GST and total, Amount in Words, Terms & Conditions, Bank Details (for an advance), signatory */
+function quoteData(q) {
+  var s = S.set, c = qParty(q), tax = r2(q.cgst + q.sgst + q.igst), pos = posOf(c), many = q.items.length > 1;
+  var when = [['Date:', dmy(q.date)]];
+  if (q.valid) when.push(['Valid Till:', dmy(q.valid)]);
+  if (tax > 0 && pos) when.push(['Place of Supply:', stateName(pos)]);
+  var rows = q.items.map(function (it, i) { return [(many ? (i + 1) + '. ' : '') + it.d, it.a]; });
+  if (tax > 0 && many) rows.push(['Total Fees', q.tx, 1]);
+  taxRows(rows, q); rows.push(['Total', q.amt, 1]);
+  var sac = s.gstin && q.sac && tax > 0 ? q.sac : '', intro = [];
+  if (q.subj) intro.push({ h: 'Subject:', l: [q.subj] });
+  intro.push({ h: '', l: ['Dear Sir/Madam,', 'We are pleased to quote our professional fees for the following services:'].concat(sac ? ['SAC: ' + sac] : []) });
+  var terms = String(q.terms || '').split(/\n+/).map(function (l) { return l.trim(); }).filter(Boolean);
+  return Object.assign(firmParts(), { kind: 'qt', tax: tax, title: 'QUOTATION', noLabel: 'Quotation No.:', no: q.no, to: toLines(c), when: when, intro: intro, rows: rows, words: amountWords(q.amt),
+    mid: terms.length ? [{ h: 'Terms & Conditions:', l: terms }] : [], qr: false, upi: '', bal: 0, paid: false, paidOn: '', note: '' });
 }
 /* small icons for the letterhead (24-unit boxes; the PDF draws the same paths) */
 var ICO = {
@@ -1164,25 +1268,27 @@ var ICO = {
 };
 function icoSvg(k) { return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + ICO[k] + '"/></svg>'; }
 var PINSVG = '<svg viewBox="0 0 12 18" aria-hidden="true"><path d="M6 9v7.6" stroke="#1b1b1b" stroke-width="2.6" stroke-linecap="round"/><path d="M6 9v7.6" stroke="#e9e9e9" stroke-width="1.2" stroke-linecap="round"/><circle cx="6" cy="5.4" r="4.4" fill="#e8402a" stroke="#1b1b1b" stroke-width=".9"/><circle cx="4.6" cy="4" r="1.1" fill="#ff9d8c"/></svg>';
-function invPaper(p) {
-  var b = billData(p), s = b.s, e = esc;
+function docPaper(b) {
+  var s = b.s, e = esc;
   function lines(a) { return a.map(function (l) { return '<div>' + e(l) + '</div>'; }).join(''); }
   function sec(h, body) { return '<div class="lh-sec"><b>' + h + '</b>' + body + '</div>'; }
   var ct = (b.phone ? '<div>' + icoSvg('phone') + '<span>' + e(b.phone) + '</span></div>' : '') + (b.email ? '<div>' + icoSvg('mail') + '<span>' + e(b.email) + '</span></div>' : '') + (b.ids ? '<div><span>' + e(b.ids) + '</span></div>' : '');
   var head = '<div class="lh-band"><div class="lh-id">' + (s.logo ? '<img class="lh-logo" src="' + s.logo + '" alt="">' : '') + '<div><div class="lh-firm">' + e(b.firm) + '</div>' + (b.tag ? '<div class="lh-sub">' + e(b.tag) + '</div>' : '') + (b.line2 ? '<div class="lh-sub">' + e(b.line2) + '</div>' : '') + '</div></div>' + (ct ? '<div class="lh-ct">' + ct + '</div>' : '') + '</div>';
   var tab = '<table class="lh-tab"><thead><tr><th>Particulars</th><th>Amount (₹)</th></tr></thead><tbody>' + b.rows.map(function (r) { return '<tr' + (r[2] ? ' class="t"' : '') + '><td>' + e(r[0]) + '</td><td class="r">' + money2(r[1]) + '</td></tr>'; }).join('') + '</tbody></table>';
-  var qr = b.qr ? '<div class="lh-qr">' + qrSvg(upiLink(p), 104) + '<div>Scan to pay ' + inr(b.pi.bal) + '<br>with any UPI app</div></div>' : '';
+  var qr = b.qr ? '<div class="lh-qr">' + qrSvg(b.upi, 104) + '<div>Scan to pay ' + inr(b.bal) + '<br>with any UPI app</div></div>' : '';
   var stamp = b.paid ? '<div class="pstamp">PAID' + (b.paidOn ? '<small>' + e(b.paidOn) + '</small>' : '') + '</div>' : '';
-  return '<div class="inv">' + head + '<div class="lh-body">' + (s.logo && s.wm ? '<img class="lh-wm" src="' + s.logo + '" alt="">' : '') +
-    (b.title ? '<div class="lh-title">' + b.title + '</div>' : '') + '<div class="lh-no"><b>Invoice No.:</b> ' + e(p.no || '-') + '</div>' +
+  return '<div class="inv' + (b.kind === 'qt' ? ' qt' : '') + '">' + head + '<div class="lh-body">' + (s.logo && s.wm ? '<img class="lh-wm" src="' + s.logo + '" alt="">' : '') +
+    (b.title ? '<div class="lh-title">' + b.title + '</div>' : '') + '<div class="lh-no"><b>' + b.noLabel + '</b> ' + e(b.no || '-') + '</div>' +
     '<div class="lh-to"><div><b>To:</b>' + lines(b.to) + '</div><div class="lh-dt">' + b.when.map(function (w) { return '<div><b>' + w[0] + '</b> ' + e(w[1]) + '</div>'; }).join('') + '</div></div>' +
-    '<hr>' + sec('Description of Services:', '<div>' + e(b.desc) + '</div>' + (b.sac ? '<div>SAC: ' + e(b.sac) + '</div>' : '')) + tab +
+    '<hr>' + b.intro.map(function (bk, i) { return '<div class="lh-sec' + (i ? ' lh-gap' : '') + '">' + (bk.h ? '<b>' + bk.h + '</b>' : '') + lines(bk.l) + '</div>'; }).join('') + tab +
     '<hr>' + sec('Amount in Words:', '<div>' + e(b.words) + '</div>') +
+    b.mid.map(function (bk) { return '<hr>' + sec(bk.h, lines(bk.l)); }).join('') +
     (b.bank.length || qr || stamp ? '<hr><div class="lh-pay">' + (b.bank.length ? sec('Bank Details:', b.bank.map(function (x) { return '<div>' + x[0] + ' ' + e(x[1]) + '</div>'; }).join('')) : '<div></div>') + qr + stamp + '</div>' : '') +
     (b.note ? '<hr>' + sec('Note:', '<div>' + e(b.note) + '</div>') : '') +
     '<hr><div class="lh-sign"><b>Authorized Signatory</b>' + lines(b.sign) + '</div></div>' +
     '<div class="lh-foot">' + (b.foot ? PINSVG + '<span>' + e(b.foot) + '</span>' : '') + '</div></div>';
 }
+function invPaper(p) { return docPaper(billData(p)); }
 /* what still makes the invoice complete: the logo (band + watermark) and the UPI ID (scan-to-pay QR code) */
 function setupNote(pi) {
   if (lsGet('od_hidesetup')) return '';
@@ -1351,12 +1457,13 @@ function sheetTask(id, cid) {
     fld('t_note', 'Notes', '<textarea id="t_note" rows="2" maxlength="1000">' + esc(v.note) + '</textarea>') +
     '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (x ? 'Save changes' : 'Add work') + '</button>' + (x && ROLE === 'admin' ? '<button class="btn del" type="button" data-a="delTask" data-id="' + x.id + '">Delete</button>' : '') + '</div></form>');
 }
-function sheetInv(id, cid) {
+function sheetInv(id, cid, pre) {
   var p = id ? find('pay', id) : null, t = today();
-  var v = p || { cid: cid || '', no: nextNo(t), date: t, due: '', desc: S.set.desc || 'Professional fees', sac: S.set.sac, tx: '', rate: hasGst() ? S.set.rate : 0, note: '' };
+  var v = p || Object.assign({ cid: cid || '', no: nextNo(t), date: t, due: '', desc: S.set.desc || 'Professional fees', sac: S.set.sac, tx: '', rate: hasGst() ? S.set.rate : 0, note: '' }, pre || {});
   var cOpts = clientOpts(v.cid); if (p && p.cid && !client(p.cid)) cOpts += '<option value="' + esc(p.cid) + '" selected>' + esc(cn(p)) + '</option>';
   var gstSel = hasGst() ? '<select id="i_rate" data-c="invCalc">' + opts([[0, 'No GST'], [5, 'GST 5%'], [18, 'GST 18%']].concat([12, 28, 40].indexOf(v.rate) > -1 ? [[v.rate, 'GST ' + v.rate + '%']] : []), v.rate) + '</select>' : '<select id="i_rate" disabled><option value="0">No GST</option></select>';
-  sheet(p ? 'Edit invoice' : 'New invoice', '<form data-f="inv" data-id="' + esc(id || '') + '" data-auto="' + (p ? '' : esc(v.no)) + '" novalidate>' +
+  sheet(p ? 'Edit invoice' : 'New invoice', '<form data-f="inv" data-id="' + esc(id || '') + '" data-auto="' + (p ? '' : esc(v.no)) + '" data-q="' + esc(!p && pre && pre.qid ? pre.qid : '') + '" novalidate>' +
+    (!p && pre && pre.qno ? '<p class="meta" style="margin-top:0">Filled in from quotation ' + esc(pre.qno) + '. Change anything before saving.</p>' : '') +
     fld('i_cid', 'Client *', '<select id="i_cid" data-c="invCalc">' + cOpts + '</select>') +
     '<div class="two">' + fld('i_no', 'Invoice no. *', inp('i_no', v.no, 'maxlength="16" autocomplete="off" spellcheck="false"')) + fld('i_date', 'Invoice date *', '<input id="i_date" type="date" value="' + esc(v.date) + '" data-c="invDate">') + '</div>' +
     '<div class="two">' + fld('i_tx', 'Fees ₹ (before GST) *', inp('i_tx', v.tx === '' ? '' : v.tx, 'inputmode="decimal" autocomplete="off" data-i="invCalc"')) + fld('i_rate', 'GST', gstSel, hasGst() ? '' : 'Add your GSTIN in Settings to charge GST.') + '</div>' +
@@ -1373,6 +1480,53 @@ function invCalc() {
   if (!(tx > 0)) { box.innerHTML = '<div><span>Total</span><span>Enter the fees</span></div>'; return; }
   var g = gstSplit(tx, rate, c), tot = r2(tx + g.cgst + g.sgst + g.igst);
   box.innerHTML = '<div><span>Fees</span><span>' + inr(tx) + '</span></div>' + (g.cgst ? '<div><span>CGST ' + rate / 2 + '% + SGST ' + rate / 2 + '%</span><span>' + inr(r2(g.cgst + g.sgst)) + '</span></div>' : '') + (g.igst ? '<div><span>IGST ' + rate + '% (other state)</span><span>' + inr(g.igst) + '</span></div>' : '') + '<div class="t"><span>Invoice total</span><span>' + inr(tot) + '</span></div>';
+}
+function qRow(d, a) {
+  return '<div class="qrow"><input class="q_d" value="' + esc(d || '') + '" maxlength="200" placeholder="Service, like Statutory audit FY 2026-27" aria-label="Service" autocomplete="off" data-i="qCalc"><input class="q_a" value="' + esc(a === '' || a == null ? '' : a) + '" inputmode="decimal" placeholder="Fees ₹" aria-label="Fees in rupees" autocomplete="off" data-i="qCalc"><button class="btn sm" type="button" data-a="qDel" aria-label="Remove this service">×</button></div>';
+}
+function sheetQuote(id, cid, from) {
+  var q = id ? find('quotes', id) : null, t = today(), src = q || from;
+  var v = Object.assign({ cid: cid || '', to: '', taddr: '', tphone: '', tgstin: '', tstate: '', subj: '', items: [], rate: hasGst() ? S.set.rate : 0, sac: S.set.sac, terms: S.set.qterms || QTERMS }, src || {});
+  if (!q) { v.no = nextQNo(t); v.date = t; v.valid = addDays(t, QDAYS); }
+  var sel = v.cid || (v.to || !S.clients.length ? '_new' : ''), items = v.items.length ? v.items : [{ d: '', a: '' }, { d: '', a: '' }];
+  var cOpts = clientOpts(sel === '_new' ? '' : sel) + '<option value="_new"' + (sel === '_new' ? ' selected' : '') + '>New party (not a client yet)</option>';
+  if (q && q.cid && !client(q.cid)) cOpts += '<option value="' + esc(q.cid) + '" selected>' + esc(qName(q)) + '</option>';
+  var gstSel = hasGst() ? '<select id="q_rate" data-c="qCalc">' + opts([[0, 'No GST'], [5, 'GST 5%'], [18, 'GST 18%']].concat([12, 28, 40].indexOf(v.rate) > -1 ? [[v.rate, 'GST ' + v.rate + '%']] : []), v.rate) + '</select>' : '<select id="q_rate" disabled><option value="0">No GST</option></select>';
+  sheet(q ? 'Edit quotation' : 'New quotation', '<form data-f="quote" data-id="' + esc(id || '') + '" data-auto="' + (q ? '' : esc(v.no)) + '" data-vauto="' + (q ? '' : esc(v.valid)) + '" novalidate>' +
+    fld('q_cid', 'For *', '<select id="q_cid" data-c="qCid">' + cOpts + '</select>') +
+    '<div id="q_party"' + (sel === '_new' ? '' : ' hidden') + '>' + fld('q_to', 'Party name *', inp('q_to', v.to, 'maxlength="120" autocomplete="off"')) +
+    '<div class="two">' + fld('q_tphone', 'Mobile (WhatsApp)', inp('q_tphone', v.tphone, 'inputmode="tel" maxlength="30" autocomplete="off"')) + fld('q_tgstin', 'GSTIN', inp('q_tgstin', v.tgstin, 'maxlength="15" autocapitalize="characters" spellcheck="false" autocomplete="off" data-i="qCalc"')) + '</div>' +
+    fld('q_taddr', 'Address', '<textarea id="q_taddr" rows="2" maxlength="400">' + esc(v.taddr) + '</textarea>') + fld('q_tstate', 'State', '<select id="q_tstate" data-c="qCalc">' + stateOpts(v.tstate) + '</select>') + '</div>' +
+    '<div class="two">' + fld('q_no', 'Quotation no. *', inp('q_no', v.no, 'maxlength="30" autocomplete="off" spellcheck="false"')) + fld('q_date', 'Date *', '<input id="q_date" type="date" value="' + esc(v.date) + '" data-c="qDate">') + '</div>' +
+    '<div class="two">' + fld('q_valid', 'Valid till', '<input id="q_valid" type="date" value="' + esc(v.valid) + '">', 'Leave empty if no end date.') + fld('q_rate', 'GST', gstSel, hasGst() ? '' : 'Add your GSTIN in Settings to charge GST.') + '</div>' +
+    fld('q_subj', 'Subject', inp('q_subj', v.subj, 'maxlength="200" placeholder="Statutory audit and tax filing for FY 2026-27" autocomplete="off"')) +
+    '<div class="fld"><span>Services and fees *</span><div id="q_rows">' + items.map(function (it) { return qRow(it.d, it.a); }).join('') + '</div><div><button class="btn sm" type="button" data-a="qAdd">+ Add service</button></div></div>' +
+    '<div class="calc" id="qcalc" aria-live="polite"></div>' +
+    (hasGst() ? fld('q_sac', 'SAC code', inp('q_sac', v.sac, 'inputmode="numeric" maxlength="8" placeholder="998222" autocomplete="off"')) : '') +
+    fld('q_terms', 'Terms & conditions', '<textarea id="q_terms" rows="4" maxlength="1500">' + esc(v.terms) + '</textarea>', 'One point per line.') +
+    '<label class="ck"><input type="checkbox" id="q_tdef"><span>Use these terms for future quotations</span></label>' +
+    '<p class="ferr" id="ferr" role="alert"></p><div class="sacts"><button class="btn pri" type="submit">' + (q ? 'Save changes' : 'Make quotation') + '</button>' + (q ? '<button class="btn del" type="button" data-a="delQuote" data-id="' + q.id + '">Delete quotation</button>' : '') + '</div></form>');
+  qCalc();
+}
+function qItems() {
+  var list = [], err = '', focus = null;
+  $$('#q_rows .qrow').forEach(function (r) {
+    if (err) return;
+    var d = r.querySelector('.q_d').value.trim(), raw = r.querySelector('.q_a').value.trim(), a = r2(num(raw));
+    if (!d && !raw) return;
+    if (!d) { err = 'Write the service for the fees ' + raw + '.'; focus = r.querySelector('.q_d'); return; }
+    if (!(a > 0)) { err = 'Enter the fees for ' + d + ' (more than 0). Only numbers, like 15000 or 15000.50.'; focus = r.querySelector('.q_a'); return; }
+    list.push({ d: d.slice(0, 200), a: a });
+  });
+  return { list: list, err: err, focus: focus };
+}
+function qFormParty() { var cid = val('q_cid'); if (cid !== '_new') return client(cid); var g = val('q_tgstin').toUpperCase().replace(/\s/g, ''); return { gstin: GST_RE.test(g) ? g : '', state: GST_RE.test(g) ? g.slice(0, 2) : val('q_tstate') }; }
+function qCalc() {
+  var box = $('#qcalc'); if (!box) return;
+  var it = qItems(), tx = sum(it.list, function (x) { return x.a; }), rate = +val('q_rate') || 0;
+  if (!(tx > 0)) { box.innerHTML = '<div><span>Total</span><span>Enter the fees</span></div>'; return; }
+  var g = gstSplit(tx, rate, qFormParty()), tot = r2(tx + g.cgst + g.sgst + g.igst);
+  box.innerHTML = '<div><span>Fees' + (it.list.length > 1 ? ' (' + it.list.length + ' services)' : '') + '</span><span>' + inr(tx) + '</span></div>' + (g.cgst ? '<div><span>CGST ' + rate / 2 + '% + SGST ' + rate / 2 + '%</span><span>' + inr(r2(g.cgst + g.sgst)) + '</span></div>' : '') + (g.igst ? '<div><span>IGST ' + rate + '% (other state)</span><span>' + inr(g.igst) + '</span></div>' : '') + '<div class="t"><span>Quotation total</span><span>' + inr(tot) + '</span></div>';
 }
 function payForm(kind, id, info, list) {
   var bal = info.bal, t = today(), isInv = kind === 'rcv';
@@ -1461,6 +1615,7 @@ function sheetSettings() {
     fld('g_desc', 'Default description of services', inp('g_desc', s.desc, 'maxlength="120" placeholder="Accounting and Consultancy Services rendered as per agreement."')) +
     fld('g_fee', 'Fee line in the table', inp('g_fee', s.fee, 'maxlength="80" placeholder="Professional Fees (as agreed)"')) +
     fld('g_terms', 'Note printed on every invoice', inp('g_terms', s.terms, 'maxlength="500" placeholder="Payment due within 15 days"')) +
+    fld('g_qterms', 'Terms printed on new quotations', '<textarea id="g_qterms" rows="4" maxlength="1500">' + esc(s.qterms || QTERMS) + '</textarea>', 'One point per line. Each quotation can still be changed.') +
     '<h4>Signature block</h4><div class="two">' + fld('g_sgn', 'Authorized signatory', inp('g_sgn', s.sgn, 'maxlength="60" placeholder="Rahul Sharma"')) + fld('g_sgd', 'Designation', inp('g_sgd', s.sgd, 'maxlength="60" placeholder="Team Leader"')) + '</div>' +
     '<h4>Bank and UPI (printed on invoices)</h4><div class="two">' + fld('g_bank', 'Bank name', inp('g_bank', s.bank, 'maxlength="120" placeholder="BANK OF INDIA"')) + fld('g_acname', 'Account name', inp('g_acname', s.acname, 'maxlength="120"')) + '</div>' +
     '<div class="two">' + fld('g_acno', 'Account no.', inp('g_acno', s.acno, 'inputmode="numeric" maxlength="30" autocomplete="off"')) + fld('g_ifsc', 'IFSC', inp('g_ifsc', s.ifsc, 'maxlength="11" autocapitalize="characters" spellcheck="false"')) + '</div>' +
@@ -1472,7 +1627,7 @@ function sheetImport() {
 }
 function sheetExports() {
   sheet('Excel files', '<p class="meta">Each file opens in Excel or Google Sheets.</p><div class="acts" style="flex-direction:column;align-items:stretch">' +
-    [['clients', 'Clients with amount due'], ['invoices', 'Invoices with GST and balance'], ['receipts', 'Receipts from clients (with TDS)'], ['bills', 'Creditor bills'], ['vpays', 'Payments to creditors (with TDS)'], ['work', 'Work list'], ['comp', 'Compliance status (current periods)']].map(function (e) { return '<button class="btn" data-a="csv" data-id="' + e[0] + '">' + e[1] + '</button>'; }).join('') + '</div>');
+    [['clients', 'Clients with amount due'], ['invoices', 'Invoices with GST and balance'], ['receipts', 'Receipts from clients (with TDS)'], ['bills', 'Creditor bills'], ['vpays', 'Payments to creditors (with TDS)'], ['quotes', 'Quotations'], ['work', 'Work list'], ['comp', 'Compliance status (current periods)']].map(function (e) { return '<button class="btn" data-a="csv" data-id="' + e[0] + '">' + e[1] + '</button>'; }).join('') + '</div>');
 }
 
 /* ================= form handlers ================= */
@@ -1528,7 +1683,38 @@ var FORMS = {
     if (got > amt + 0.009) return ferr('The total cannot be less than ' + inr(got) + ' already received. Delete a payment first.', 'i_tx');
     var o = { id: id || uid(), cid: cid, cname: c ? c.name : (old ? old.cname : ''), no: no, date: date, due: due, desc: desc, sac: sac, tx: tx, rate: rate, cgst: g.cgst, sgst: g.sgst, igst: g.igst, amt: amt, rcv: rcv, note: val('i_note'), ct: old ? old.ct : new Date().toISOString() };
     put('pay', o); closeSheet(); toast(old ? 'Invoice updated' : 'Invoice ' + no + ' made');
+    var fromQ = !old && f.dataset.q && find('quotes', f.dataset.q); if (fromQ) put('quotes', Object.assign({}, fromQ, { inv: o.id, st: 'won', sd: fromQ.sd || today(), cid: fromQ.cid || cid }));
     if (!old) openD({ k: 'inv', id: o.id });
+  },
+  quote: function (f) {
+    var id = f.dataset.id, old = id ? find('quotes', id) : null, cid = val('q_cid'), isNew = cid === '_new', c = isNew ? null : client(cid);
+    if (!cid) return ferr('Choose the client, or New party for someone who is not a client yet.', 'q_cid');
+    var to = isNew ? val('q_to') : c ? c.name : old ? old.to : '';
+    if (isNew && !to) return ferr('Enter the party name.', 'q_to');
+    var tphone = isNew ? val('q_tphone') : '', tg = isNew ? val('q_tgstin').toUpperCase().replace(/\s/g, '') : '';
+    if (tphone && !phoneOk(tphone)) return ferr('Mobile number should have 10 digits. You can add +91 in front.', 'q_tphone');
+    if (tg && !GST_RE.test(tg)) return ferr('GSTIN should be 15 characters, like 19ABCDE1234F1Z5.', 'q_tgstin');
+    if (tg && !gstOk(tg)) return ferr('This GSTIN fails its check digit, so one character is probably mistyped.', 'q_tgstin');
+    var no = val('q_no'), date = val('q_date'), valid = val('q_valid');
+    if (!no) return ferr('Enter the quotation number.', 'q_no');
+    if (!/^[A-Za-z0-9\/-]+$/.test(no)) return ferr('Use only letters, numbers, / and - in the quotation number.', 'q_no');
+    if (!okDate(date)) return ferr('Choose the quotation date.', 'q_date');
+    var dupe = qNoTaken(no, id); if (dupe) return ferr('Quotation number ' + no + ' is already used (' + qName(dupe) + '). The next free number is ' + nextQNo(date, id) + '.', 'q_no');
+    if (valid && !okDate(valid)) return ferr('Choose a valid date for Valid till.', 'q_valid');
+    if (valid && valid < date) return ferr('Valid till cannot be before the quotation date.', 'q_valid');
+    var it = qItems(); if (it.err) { ferr(it.err); if (it.focus) it.focus.focus(); return false; }
+    if (!it.list.length) { ferr('Add at least one service with its fees.'); var d0 = $('#q_rows .q_d'); if (d0) d0.focus(); return false; }
+    var tx = sum(it.list, function (x) { return x.a; }); if (tx > 1e11) return ferr('This amount is too large.');
+    var sac = hasGst() ? val('q_sac') : (old ? old.sac : ''); if (sac && !/^\d{4,8}$/.test(sac)) return ferr('SAC code should be 4 to 8 digits, like 998222.', 'q_sac');
+    var party = c || (isNew ? { gstin: tg, state: GST_RE.test(tg) ? tg.slice(0, 2) : val('q_tstate') } : old ? qParty(old) : null), rate, g;
+    if (hasGst()) { rate = +val('q_rate') || 0; g = gstSplit(tx, rate, party); }
+    else if (old && old.rate) { rate = old.rate; g = old.igst > 0 ? { cgst: 0, sgst: 0, igst: r2(tx * rate / 100) } : { cgst: r2(tx * rate / 200), sgst: r2(tx * rate / 200), igst: 0 }; }
+    else { rate = 0; g = { cgst: 0, sgst: 0, igst: 0 }; }
+    var o = { id: id || uid(), cid: isNew ? '' : cid, to: to, taddr: isNew ? val('q_taddr') : '', tphone: tphone, tgstin: tg, tstate: isNew ? val('q_tstate') : '', no: no, date: date, valid: valid, subj: val('q_subj'), items: it.list, sac: sac, rate: rate, cgst: g.cgst, sgst: g.sgst, igst: g.igst, terms: val('q_terms'), st: old ? old.st : 'open', sd: old ? old.sd : '', inv: old ? old.inv : '', ct: old ? old.ct : new Date().toISOString() };
+    put('quotes', o);
+    var td = $('#q_tdef'); if (td && td.checked && o.terms) putSet(Object.assign({}, S.set, { qterms: o.terms }));
+    closeSheet(); toast(old ? 'Quotation updated' : 'Quotation ' + no + ' made');
+    if (!old) openD({ k: 'quote', id: o.id });
   },
   rcv: function (f) { savePayment(f, 'pay', 'rcv'); },
   vpay: function (f) { savePayment(f, 'vp', 'pays'); },
@@ -1597,7 +1783,7 @@ var FORMS = {
     if (upi && !/^[A-Za-z0-9._-]{2,256}@[A-Za-z]{2,64}$/.test(upi)) return ferr('UPI ID should look like name@bank.', 'g_upi');
     var wm = $('#g_wm');
     putSet({ name: val('g_name'), addr: val('g_addr'), gstin: g, pan: pan || (g ? g.slice(2, 12) : ''), state: val('g_state'), phone: val('g_phone'), email: val('g_email'), prefix: pre || 'INV', numst: val('g_numst'), rate: +val('g_rate'), desc: val('g_desc'), sac: val('g_sac'), terms: val('g_terms'), bank: val('g_bank'), acname: val('g_acname'), acno: val('g_acno').replace(/\s/g, ''), ifsc: ifsc, upi: upi,
-      tag: val('g_tag'), line2: val('g_line2'), fee: val('g_fee'), sgn: val('g_sgn'), sgd: val('g_sgd'), logo: LOGO_EDIT !== null ? LOGO_EDIT : S.set.logo, wm: wm ? (wm.checked ? 1 : 0) : S.set.wm });
+      qterms: val('g_qterms'), tag: val('g_tag'), line2: val('g_line2'), fee: val('g_fee'), sgn: val('g_sgn'), sgd: val('g_sgd'), logo: LOGO_EDIT !== null ? LOGO_EDIT : S.set.logo, wm: wm ? (wm.checked ? 1 : 0) : S.set.wm });
     LOGO_EDIT = null; closeSheet(); toast('Firm details saved');
   }
 };
@@ -1655,7 +1841,7 @@ var A = {
     try {
       if (navigator.canShare && !navigator.canShare(data)) data = { files: [s.pdf.file] };
       if (navigator.canShare && !navigator.canShare(data)) { sendNote('This phone cannot share PDF files. Download the PDF and attach it in the group.'); return; }
-      navigator.share(data).then(function () { sendDone(); closeSheet(); toast('Invoice shared.'); }, shareFail);
+      navigator.share(data).then(function () { sendDone(); closeSheet(); toast(s.p && s.p.items ? 'Quotation shared.' : 'Invoice shared.'); }, shareFail);
     } catch (e) { shareFail(e); }
   },
   sendGroup: function () { var s = SEND; if (!s) return; sendDone(); copyForGroup(s.msg, TOUCH ? 'Message copied. In the group, press and hold the message box, tap Paste, then Send.' : 'Message copied. In the group, click the message box, press Ctrl+V, then Enter.'); },
@@ -1701,16 +1887,55 @@ var A = {
   doImport: function () { if (PENDING_IMPORT) importInto(PENDING_IMPORT, function () {}); },
   csv: function (id) { exportCsv(id); },
   pdf: function (id) { var p = find('pay', id); if (p) makePdf(p); },
+  newQuote: function (id) { sheetQuote(null, id || ''); }, editQuote: function (id) { sheetQuote(id); }, openQuote: function (id) { openD({ k: 'quote', id: id }); },
+  copyQuote: function (id) { var q = find('quotes', id); if (q) sheetQuote(null, '', { cid: q.cid && client(q.cid) ? q.cid : '', to: q.to, taddr: q.taddr, tphone: q.tphone, tgstin: q.tgstin, tstate: q.tstate, subj: q.subj, items: q.items, rate: q.rate, sac: q.sac, terms: q.terms }); },
+  fquote: function (id) { F.quote = id; F.more.quote = 0; render(); },
+  qpdf: function (id) { var q = find('quotes', id); if (q) makePdf(q); },
+  sendQ: function (id) { var q = find('quotes', id); if (q) sendSheet(qParty(q), quoteMsg(q), null, q); },
+  qAdd: function () { var box = $('#q_rows'); if (!box) return; if (box.children.length >= 30) { toast('A quotation can have up to 30 services.'); return; } box.insertAdjacentHTML('beforeend', qRow('', '')); var l = box.lastElementChild.querySelector('.q_d'); if (l) l.focus(); },
+  qDel: function (id, el) { var r = el.closest('.qrow'), box = $('#q_rows'); if (!r || !box) return; if (box.children.length > 1) r.remove(); else { r.querySelector('.q_d').value = ''; r.querySelector('.q_a').value = ''; } qCalc(); },
+  quoteWon: function (id) {
+    var q = find('quotes', id); if (!q) return;
+    put('quotes', Object.assign({}, q, { st: 'won', sd: today() })); toast('Marked accepted');
+    if (!q.cid || !client(q.cid)) ask('Add ' + q.to + ' to your clients?', q.to + ' accepted the quotation. As a client, their invoices, work and WhatsApp group are kept in one place.', 'Add as client', function () { quoteClient(id); });
+  },
+  quoteLost: function (id) { var q = find('quotes', id); if (!q) return; put('quotes', Object.assign({}, q, { st: 'lost', sd: today() })); toast('Marked declined'); },
+  quoteReopen: function (id) { var q = find('quotes', id); if (!q) return; put('quotes', Object.assign({}, q, { st: 'open', sd: '' })); toast('Quotation reopened'); },
+  quoteClient: function (id) { quoteClient(id); },
+  quoteInv: function (id) {
+    var q = find('quotes', id); if (!q) return;
+    var pre = { desc: qDesc(q), tx: q.tx, rate: hasGst() ? q.rate : 0, sac: q.sac || S.set.sac, note: 'As per our quotation ' + q.no + (q.date ? ' dated ' + dmy(q.date) : ''), qid: q.id, qno: q.no };
+    if (q.cid && client(q.cid)) { sheetInv(null, q.cid, pre); return; }
+    ask('Add ' + q.to + ' as a client?', 'An invoice needs a client. ' + q.to + ' is added to Clients with the details from this quotation, then the invoice opens with the fees filled in.', 'Add client and make invoice', function () { var c = quoteClient(id); if (c) hThen(function () { sheetInv(null, c.id, pre); }); });
+  },
+  delQuote: function (id) { var q = find('quotes', id); if (!q) return; ask('Delete quotation ' + (q.no || '') + '?', inr(q.amt) + ' for ' + qName(q) + '. This cannot be undone.', 'Delete quotation', function () { remove('quotes', id); toast('Quotation deleted'); leaveDetail(id); }); },
   logoAdd: function () { sheetLogo(); },
   upiAdd: function () { sheetUpi(); },
   setupHide: function () { lsSet('od_hidesetup', '1'); render(); },
   logoDel: function (id, el) { LOGO_EDIT = ''; var pv = $('#logo_pv'); if (pv) pv.innerHTML = logoPv(''); el.hidden = true; var l = $('label[for="g_logo"]'); if (l) l.textContent = 'Choose logo'; }
 };
+/* a party who accepted becomes a client (or is matched to one already saved), and the quotation points to them */
+function quoteClient(qid) {
+  var q = find('quotes', qid); if (!q) return null;
+  if (q.cid && client(q.cid)) return client(q.cid);
+  var nm = (q.to || '').toLowerCase(), same = S.clients.filter(function (c) { return (q.tgstin && c.gstin === q.tgstin) || c.name.toLowerCase() === nm; })[0];
+  var c = same || put('clients', { id: uid(), name: q.to, phone: q.tphone, email: '', gstin: q.tgstin, pan: '', state: q.tstate, addr: q.taddr, notes: 'Added from quotation ' + q.no, grp: '', prm: '', ct: new Date().toISOString() });
+  put('quotes', Object.assign({}, find('quotes', qid), { cid: c.id, to: c.name }));
+  toast(same ? q.to + ' is already a client; the quotation is linked to them' : q.to + ' added to clients');
+  return c;
+}
 function armed(el, fn) { if (el.dataset.armed) { fn(); return; } el.dataset.armed = '1'; var t = el.textContent; el.textContent = 'Tap again to delete'; setTimeout(function () { if (el.isConnected) { delete el.dataset.armed; el.textContent = t; } }, 3500); }
 var CHANGE = {
   taskSt: function (id, el) { var x = find('tasks', id); if (!x) return; var st = el.value; put('tasks', Object.assign({}, x, { st: st, done: st === 'done' ? (x.done || today()) : '' })); if (st === 'done') toast('Marked done'); el.blur(); },
   tstaff: function (id, el) { F.tstaff = el.value; el.blur(); render(); },
   invCalc: function () { invCalc(); },
+  qCid: function () { var p = $('#q_party'); if (p) p.hidden = val('q_cid') !== '_new'; if (val('q_cid') === '_new') { var t = $('#q_to'); if (t && !t.value) t.focus(); } qCalc(); },
+  qCalc: function () { qCalc(); },
+  qDate: function (id, el) {
+    var f = el.form, no = $('#q_no'), vd = $('#q_valid'); if (!f || !okDate(el.value)) return;
+    if (f.dataset.auto && no && no.value === f.dataset.auto) { no.value = nextQNo(el.value, f.dataset.id); f.dataset.auto = no.value; }
+    if (f.dataset.vauto && vd && vd.value === f.dataset.vauto) { vd.value = addDays(el.value, QDAYS); f.dataset.vauto = vd.value; }
+  },
   invDate: function (id, el) { var f = el.form, no = $('#i_no'); if (f && f.dataset.auto && no && no.value === f.dataset.auto && okDate(el.value)) { no.value = nextNo(el.value, f.dataset.id); f.dataset.auto = no.value; } },
   kf: function () { kPreview(); },
   impFile: function (id, el) { readImport(el.files && el.files[0]); },
@@ -1728,6 +1953,7 @@ var CHANGE = {
 var INPUT = {
   search: function (id, el) { QS[V.tab] = el.value; F.more[V.tab] = 0; clearTimeout(INPUT.t); INPUT.t = setTimeout(render, 120); },
   invCalc: function () { invCalc(); },
+  qCalc: function () { qCalc(); },
   gstFill: function (id, el) { var g = el.value.toUpperCase().replace(/\s/g, ''); if (GST_RE.test(g)) { var p = $('#f_pan'), s = $('#f_state'); if (p && !p.value) p.value = g.slice(2, 12); if (s && STATES[g.slice(0, 2)]) s.value = g.slice(0, 2); } },
   kfilter: function (id, el) { var q = el.value.toLowerCase(); $$('.ck').forEach(function (l) { l.hidden = q && l.dataset.n.indexOf(q) < 0; }); },
   numHint: function (id, el) { var s = $('#g_numst'); if (!s) return; var cur = s.value, pre = el.value.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 6) || 'INV'; s.innerHTML = numOpts(pre, cur); }
@@ -1754,7 +1980,7 @@ var TT = 0;
 function toast(m) { var t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(TT); TT = setTimeout(function () { t.hidden = true; }, 3200); }
 
 /* ================= files: backup, import, Excel, PDF ================= */
-function backupObj(src) { return { app: 'office-desk', ver: 2, at: new Date().toISOString(), clients: src.clients, staff: src.staff, tasks: src.tasks, pay: src.pay, vp: src.vp, comps: src.comps, marks: src.marks, set: src.set }; }
+function backupObj(src) { return { app: 'office-desk', ver: 2, at: new Date().toISOString(), clients: src.clients, staff: src.staff, tasks: src.tasks, pay: src.pay, vp: src.vp, comps: src.comps, quotes: src.quotes || [], marks: src.marks, set: src.set }; }
 function saveFile(name, data, mime) {
   return (RT || Promise.resolve()).then(function () {
     if (DL) return DL.save({ filename: name, data: data }).then(function () { toast('Saved ' + name); return true; }, function (e) { var c = e && e.code; if (c !== 'declined') toast(c === 'rate_limited' ? 'Another save is still waiting. Finish that one first.' : 'This file could not be saved here.'); return false; });
@@ -1774,7 +2000,7 @@ function readImport(file) {
     var o; try { o = JSON.parse(r.result); } catch (e) { box.innerHTML = '<p class="ferr">This file could not be read. Choose a .json backup made by this app.</p>'; return; }
     if (!o || typeof o !== 'object' || !TYPES.some(function (t) { return Array.isArray(o[t]); })) { box.innerHTML = '<p class="ferr">This file is not a backup from this app.</p>'; return; }
     var m = migrate(o); PENDING_IMPORT = m;
-    var parts = [['clients', 'client'], ['staff', 'staff member'], ['tasks', 'work item'], ['pay', 'invoice'], ['vp', 'vendor bill'], ['comps', 'compliance']].map(function (x) { return m[x[0]].length ? plural(m[x[0]].length, x[1]) : ''; }).filter(Boolean);
+    var parts = [['clients', 'client'], ['staff', 'staff member'], ['tasks', 'work item'], ['pay', 'invoice'], ['quotes', 'quotation'], ['vp', 'vendor bill'], ['comps', 'compliance']].map(function (x) { return m[x[0]].length ? plural(m[x[0]].length, x[1]) : ''; }).filter(Boolean);
     box.innerHTML = '<div class="sum">This backup has ' + (parts.length ? esc(parts.join(', ')) : 'no records') + '.' + (m.set.name ? '<br>Firm: ' + esc(m.set.name) : '') + '</div>' + (parts.length ? '<button class="btn pri" data-a="doImport">Import now</button>' : '');
   };
   r.onerror = function () { box.innerHTML = '<p class="ferr">This file could not be read.</p>'; };
@@ -1813,6 +2039,7 @@ function exportCsv(kind) {
   else if (kind === 'bills') rows = [['Party', 'Bill no.', 'Bill date', 'Pay by', 'Amount', 'Paid', 'TDS', 'Balance', 'Remarks']].concat(S.vp.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; }).map(function (x) { var vi = vinfo(x); return [x.party, x.bill, x.date, x.due, x.amt, vi.paid, vi.tds, vi.bal, x.rem]; }));
   else if (kind === 'vpays') { rows = [['Date', 'Party', 'Bill no.', 'Amount paid', 'TDS deducted', 'Mode', 'Reference']]; S.vp.forEach(function (x) { x.pays.forEach(function (r) { rows.push([r.date, x.party, x.bill, r.amt, r.tds, r.mode, r.ref]); }); }); rows = [rows[0]].concat(rows.slice(1).sort(function (a, b) { return a[0] < b[0] ? -1 : 1; })); }
   else if (kind === 'work') rows = [['Work', 'Client', 'Assigned to', 'Last date', 'Status', 'Done on', 'Notes']].concat(S.tasks.map(function (x) { return [x.title, x.cid || x.cname ? cn(x) : '', sname(x.sid), x.due, { todo: 'To do', doing: 'In progress', done: 'Done' }[x.st], x.done, x.note]; }));
+  else if (kind === 'quotes') rows = [['Quotation no.', 'Date', 'Valid till', 'Client / party', 'Subject', 'Services', 'Fees', 'GST %', 'GST', 'Total', 'Status', 'Accepted / declined on', 'Invoice no.']].concat(S.quotes.slice().sort(function (a, b) { return (a.date || '') < (b.date || '') ? -1 : 1; }).map(function (q) { var inv = q.inv && find('pay', q.inv); return [q.no, q.date, q.valid, qName(q), q.subj, q.items.map(function (x) { return x.d + ' (' + x.a + ')'; }).join('; '), q.tx, q.rate, r2(q.cgst + q.sgst + q.igst), q.amt, { open: 'Awaiting reply', exp: 'Expired', won: 'Accepted', lost: 'Declined' }[qinfo(q).st], q.sd, inv ? inv.no : '']; }));
   else if (kind === 'comp') { rows = [['Compliance', 'Period', 'Last date', 'Client', 'GSTIN', 'Status', 'Filed on']]; compEntries().forEach(function (e) { e.st.req.forEach(function (c) { rows.push([e.k.n, pLabel(e.k, e.key), e.due, c.name, c.gstin, e.st.f[c.id] ? 'Filed' : 'Pending', e.st.f[c.id] || '']); }); }); }
   if (!rows) return;
   saveFile(slug(brand()) + '-' + name + '-' + t + '.csv', csvText(rows), 'text/csv');
@@ -1841,9 +2068,9 @@ function makePdf(p) {
   }).catch(function (e) { toast(e && e.message === 'load' ? 'Could not load the PDF maker. Check your internet and try again.' : 'Could not make the PDF: ' + (e && e.message || 'unknown error')); if (window.console) console.error(e); });
 }
 function buildPdf(p) {
-  var L = window.PDFLib, b = billData(p), s = b.s, pi = b.pi;
+  var L = window.PDFLib, b = p.items ? quoteData(p) : billData(p), s = b.s;
   return L.PDFDocument.create().then(function (doc) {
-    doc.setTitle(pdfText('Invoice ' + (p.no || ''))); doc.setAuthor(pdfText(brand())); doc.setCreator(pdfText(brand()));
+    doc.setTitle(pdfText((b.kind === 'qt' ? 'Quotation ' : 'Invoice ') + (b.no || ''))); doc.setAuthor(pdfText(brand())); doc.setCreator(pdfText(brand()));
     var jobs = [L.StandardFonts.TimesRoman, L.StandardFonts.TimesRomanBold, L.StandardFonts.Helvetica, L.StandardFonts.HelveticaBold].map(function (f) { return doc.embedFont(f); });
     jobs.push(s.logo ? (/^data:image\/png/.test(s.logo) ? doc.embedPng(s.logo) : doc.embedJpg(s.logo)).catch(function () { return null; }) : Promise.resolve(null));
     return Promise.all(jobs).then(function (fs) {
@@ -1939,26 +2166,25 @@ function buildPdf(p) {
       /* the body is laid out twice: a dry run measures it, and the gaps shrink (k < 1) until a busy invoice
          still fits on one page; only something truly long breaks onto a second letterhead page */
       var STUB = { drawText: function () {}, drawRectangle: function () {}, drawSvgPath: function () {}, drawImage: function () {}, drawLine: function () {}, drawCircle: function () {} }, DRY = false;
-      function need(h) { if (!DRY && y - h < LIMIT) { chrome(); y = H - 92; center('Invoice No.: ' + (p.no || '-') + ' (continued)', W / 2, y, 9.5, F, mut); y -= 12; } }
+      function need(h) { if (!DRY && y - h < LIMIT) { chrome(); y = H - 92; center(b.noLabel + ' ' + (b.no || '-') + ' (continued)', W / 2, y, 9.5, F, mut); y -= 12; } }
       function rule() { page.drawRectangle({ x: M, y: y - 0.65, width: XR - M, height: 1.3, color: grey }); }
       function lay(k) {
       function g(base, min) { return Math.max(min, base * k); }
       var GH = g(26.5, 17), GT = g(26, 14);
       function heading(h) { y -= GH; text(h, M, y, SZ, B); }
+      function blockLines(bk) { var ls = []; bk.l.forEach(function (x) { ls = ls.concat(wrap(x, XR - M, SZ, F)); }); return ls; }
+      function block(bk, first) { var ls = blockLines(bk); if (bk.h) heading(bk.h); else y -= first ? GH - LH : 8; ls.forEach(function (l) { y -= LH; text(l, M, y, SZ, F); }); }
       if (DRY) page = STUB; else chrome();
       y = H - 89;
       if (b.title) { center(b.title, W / 2, y, 12.5, B); y -= 17; }
-      pair('Invoice No.:', p.no || '-', W / 2, y, 'c');
+      pair(b.noLabel, b.no || '-', W / 2, y, 'c');
       y -= g(38.6, 26); var yTo = y, colW = (XR - M) * 0.6;
       text('To:', M, y, SZ, B);
       b.when.forEach(function (w, i) { pair(w[0], w[1], XR, yTo - i * LH, 'r'); });
       b.to.forEach(function (l) { wrap(l, colW, SZ, F).forEach(function (wl) { y -= LH; text(wl, M, y, SZ, F); }); });
       y = Math.min(y, yTo - (b.when.length - 1) * LH) - g(39, 18); rule();
 
-      var dl = wrap(b.desc, XR - M, SZ, F); need(GH + (dl.length + (b.sac ? 1 : 0)) * LH + 16 + 40);
-      heading('Description of Services:');
-      dl.forEach(function (l) { y -= LH; text(l, M, y, SZ, F); });
-      if (b.sac) { y -= LH; text('SAC: ' + b.sac, M, y, SZ, F); }
+      b.intro.forEach(function (bk, i) { need((bk.h || !i ? GH : 8) + blockLines(bk).length * LH + (i === b.intro.length - 1 ? 16 + 40 : 0)); block(bk, !i); });
       /* Particulars | Amount table, every cell ruled inside a ruled frame (a double-line look) */
       var TW = (XR - M) * 0.936, AW = 88, sp = 2, HH = 31, PW = TW - AW - 3 * sp, ax = M + TW - sp - AW;
       var rws = b.rows.map(function (r) { var ls = wrap(r[0], PW - 8, SZ, r[2] ? B : F); return { l: ls, v: money2(r[1]), b: r[2], h: Math.max(16, ls.length * LH + 3) }; });
@@ -1974,6 +2200,7 @@ function buildPdf(p) {
       var wl = wrap(b.words, XR - M, SZ, F); need(GH + wl.length * LH + GT);
       heading('Amount in Words:'); wl.forEach(function (l) { y -= LH; text(l, M, y, SZ, F); });
       y -= GT; rule();
+      b.mid.forEach(function (bk) { need(GH + blockLines(bk).length * LH + GT); block(bk, true); y -= GT; rule(); });
 
       if (b.bank.length || b.qr || b.paid) {
         var side = b.qr || b.paid ? 112 : 0, bl = [];
@@ -1985,10 +2212,10 @@ function buildPdf(p) {
           bl.forEach(function (l) { y -= LH; text(l, M, y, SZ, F); });
         }
         if (b.qr) {
-          var m = QR.make(upiLink(p)), n = m.length, qs = 84, cell = qs / (n + 4), qx = XR - qs - 6, qy = bt - 14 - qs;
+          var m = QR.make(b.upi), n = m.length, qs = 84, cell = qs / (n + 4), qx = XR - qs - 6, qy = bt - 14 - qs;
           page.drawRectangle({ x: qx, y: qy, width: qs, height: qs, color: white });
           for (var r = 0; r < n; r++) { var run = -1; for (var cc = 0; cc <= n; cc++) { var dk = cc < n && m[r][cc]; if (dk && run < 0) run = cc; if (!dk && run >= 0) { page.drawRectangle({ x: qx + (run + 2) * cell, y: qy + qs - (r + 3) * cell, width: (cc - run) * cell, height: cell, color: ink }); run = -1; } } }
-          center('Scan to pay ₹ ' + money2(pi.bal), qx + qs / 2, qy - 10, 8.5, F, mut); center('with any UPI app', qx + qs / 2, qy - 20, 8, F, mut);
+          center('Scan to pay ₹ ' + money2(b.bal), qx + qs / 2, qy - 10, 8.5, F, mut); center('with any UPI app', qx + qs / 2, qy - 20, 8, F, mut);
           y = Math.min(y, qy - 24);
         } else if (b.paid) { stamp(XR - 74, bt - 44, b.paidOn); y = Math.min(y, bt - 74); }
         y -= GT; rule();
