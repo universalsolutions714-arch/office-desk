@@ -957,11 +957,11 @@ function deskView() {
 }
 
 /* ================= view state + rendering ================= */
-var TABS = [['home', 'Home'], ['clients', 'Clients'], ['tasks', 'Work'], ['pay', 'Billing'], ['quote', 'Quotations'], ['vendor', 'Creditors'], ['comp', 'Compliance'], ['staff', 'Staff']];
+var TABS = [['home', 'Home'], ['clients', 'Clients'], ['tasks', 'Work'], ['pay', 'Billing'], ['quote', 'Quotations'], ['vendor', 'Creditors'], ['comp', 'Compliance'], ['staff', 'Staff'], ['attendance', 'Attendance']];
 var V = { tab: lsGet('od_tab') || 'home', d: null }, QS = { clients: '', tasks: '', pay: '', quote: '', vendor: '' };
 var F = { pay: 'open', quote: 'open', vend: 'open', tstaff: '', tdone: false, more: {} };
 var RQ = 0, DEFER = false, LASTKEY = '';
-function tabsFor() { if (FBM && MODE !== 'db') return []; if (ROLE === 'admin') return TABS; if (ROLE === 'staff') return TABS.slice(0, 3); return TABS.slice(0, 1); }
+function tabsFor() { if (FBM && MODE !== 'db') return []; if (ROLE === 'admin') return TABS; if (ROLE === 'staff') return TABS.slice(0, 3).concat([['attendance','Attendance']]); return TABS.slice(0, 1); }
 function schedule() { if (RQ) return; RQ = setTimeout(function () { RQ = 0; render(); }, 25); }
 function render(full) {
   var a = document.activeElement, main = $('#main');
@@ -1024,6 +1024,7 @@ function tool() {
     case 'vendor': return s('Search party or bill no.', 'newBill', '+ Bill');
     case 'comp': return '<div class="tbar"><button class="btn pri" data-a="newComp">+ Compliance</button><button class="btn" data-a="presets">Standard due dates</button></div>';
     case 'staff': return '<div class="tbar"><button class="btn pri" data-a="newStaff">+ Staff</button></div>';
+    case 'attendance': return '';
   }
   return '';
 }
@@ -1031,7 +1032,7 @@ function body() {
   if (FBM && MODE !== 'db') return authView();
   if (V.d) { var dv = { client: clientDetail, inv: invDetail, quote: quoteDetail, comp: compDetail }[V.d.k]; if (dv) return dv(); }
   if (MODE === 'db' && ROLE === 'viewer') return '<div class="note">You can only view this page, so office data stays hidden. Ask the office owner to give you Contributor access to see clients and work.</div>';
-  return ({ home: homeView, clients: clientsView, tasks: tasksView, pay: payView, quote: quoteView, vendor: vendorView, comp: compView, staff: staffView }[V.tab] || homeView)();
+  return ({ home: homeView, clients: clientsView, tasks: tasksView, pay: payView, quote: quoteView, vendor: vendorView, comp: compView, staff: staffView, attendance: attendanceView }[V.tab] || homeView)();
 }
 
 /* ---------- Home ---------- */
@@ -1960,6 +1961,7 @@ var INPUT = {
 };
 document.addEventListener('click', function (e) {
   var el = e.target.closest && e.target.closest('[data-a]'); if (!el) return;
+  if (el.dataset.a.indexOf('att') === 0) { e.preventDefault(); attendanceAction(el.dataset.a, el); return; }
   var f = A[el.dataset.a]; if (!f) return;
   if (el.tagName !== 'A') e.preventDefault();
   f(el.dataset.id || '', el, e);
@@ -1968,6 +1970,7 @@ document.addEventListener('change', function (e) { var el = e.target; if (el.dat
 document.addEventListener('input', function (e) { var el = e.target; if (el.dataset && INPUT[el.dataset.i]) INPUT[el.dataset.i](el.dataset.id || '', el, e); if (el.id === 'k_d') kPreview(); });
 document.addEventListener('submit', function (e) {
   var f = e.target; e.preventDefault();
+  if (f.dataset && f.dataset.f === 'attendance') { attendanceSubmit(f); return; }
   var h = f.dataset && FORMS[f.dataset.f]; if (!h) return;
   try { h(f); } catch (err) { ferr('Could not save: ' + err.message); if (window.console) console.error(err); }
 });
@@ -2573,6 +2576,78 @@ function boot() {
     return roleOf(r[1]).then(function (role) { ROLE = role; MODE = 'db'; S = blank(); LOADED = {}; detectLocalOnly(); if (ROLE !== 'viewer') subscribe(); render(true); });
   }).catch(function () { startLocal(); });
 }
+/* ================= Attendance and hourly payroll ================= */
+var ATT = [], ATTREADY = false, ATTERR = '', ATTUNSUB = null;
+var ATTPAY = {}, ATTPAYREADY = false, ATTPAYUNSUB = null;
+var ATTLOCAL = 'od_attendance_local_v1', ATTPLOCAL = 'od_payroll_local_v1';
+var ATTMONTH = today().slice(0, 7);
+function attIdentity() { return ROLE === 'admin' ? 'owner' : (MEMBER && MEMBER.sid ? MEMBER.sid : ''); }
+function attPeople() { return [{ id: 'owner', name: 'Owner', role: 'owner' }].concat(S.staff.map(function(x){return {id:x.id,name:x.name,role:'staff'};})); }
+function attAllowed(id) { return ROLE === 'admin' || (ROLE === 'staff' && id && id === attIdentity()); }
+function attMinutes(s) { if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(s || '')) return -1; return +s.slice(0,2)*60 + +s.slice(3); }
+function attHours(r) { var a=attMinutes(r.in), b=attMinutes(r.out); return a < 0 || b < 0 ? 0 : Math.max(0,b-a)/60; }
+function attClock() { var d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function attLocalLoad() { try { ATT=JSON.parse(lsGet(ATTLOCAL)||'[]'); ATTPAY=JSON.parse(lsGet(ATTPLOCAL)||'{}'); } catch(e) { ATT=[]; ATTPAY={}; } ATTREADY=true; ATTPAYREADY=true; }
+function attWatch() {
+  if (ATTUNSUB) { ATTUNSUB(); ATTUNSUB=null; }
+  if (ATTPAYUNSUB) { ATTPAYUNSUB(); ATTPAYUNSUB=null; }
+  ATT=[]; ATTPAY={}; ATTREADY=false; ATTPAYREADY=false; ATTERR='';
+  if (MODE==='local') { attLocalLoad(); return; }
+  if (!FS || MODE!=='db') return;
+  ATTUNSUB=FS.collection('attendance').onSnapshot(function(q){ATT=q.docs.map(function(d){return Object.assign({id:d.id},d.data());});ATTREADY=true;ATTERR='';if(V.tab==='attendance')schedule();},function(e){ATTERR='Attendance database access denied. Firestore rules must be configured before staff can use shared attendance.';ATTREADY=true;if(V.tab==='attendance')schedule();});
+  if (ROLE==='admin') ATTPAYUNSUB=FS.collection('attendance_payroll').onSnapshot(function(q){ATTPAY={};q.docs.forEach(function(d){ATTPAY[d.id]=d.data();});ATTPAYREADY=true;if(V.tab==='attendance')schedule();},function(e){ATTPAYREADY=true;ATTERR='Payroll access denied. Check Firestore security rules.';if(V.tab==='attendance')schedule();});
+}
+function attSave(doc,collection,done) {
+  if (MODE==='local') { if(collection==='attendance')lsSet(ATTLOCAL,JSON.stringify(ATT));else lsSet(ATTPLOCAL,JSON.stringify(ATTPAY)); done(true);return; }
+  if (!FS || MODE!=='db') { toast('Sign in first');return; }
+  FS.collection(collection).doc(doc.id).set(doc).then(function(){done(true);},function(e){toast('Not saved: Firestore permission denied.');done(false);});
+}
+function attUpsert(rec) {
+  if (!attAllowed(rec.sid)) { toast('Not allowed');return; }
+  if (!okDate(rec.date) || attMinutes(rec.in)<0 || (rec.out && attMinutes(rec.out)<0) || (rec.out && attMinutes(rec.out)<attMinutes(rec.in))) {toast('Check date and IN/OUT time. Overnight shifts are not supported.');return;}
+  var id=rec.date+'_'+rec.sid, old=ATT.filter(function(x){return x.id===id;})[0];
+  var doc={id:id,sid:rec.sid,date:rec.date,in:rec.in,out:rec.out||'',status:rec.status||'Present',source:rec.source||'manual',editedBy:FUSER?FUSER.uid:'local',updatedAt:new Date().toISOString()};
+  if(old && old.source==='self' && rec.source==='manual') doc.source='manual correction';
+  attSave(doc,'attendance',function(ok){if(ok){if(MODE==='local'){ATT=ATT.filter(function(x){return x.id!==id;});ATT.push(doc);lsSet(ATTLOCAL,JSON.stringify(ATT));}toast('Attendance saved');render(true);}});
+}
+function attendanceView() {
+  var self=attIdentity(), people=attPeople(), month=ATTMONTH, rows=ATT.filter(function(x){return x.date && x.date.slice(0,7)===month && attAllowed(x.sid);}).sort(function(a,b){return a.date.localeCompare(b.date)||a.sid.localeCompare(b.sid);});
+  var h='<h2>Attendance &amp; Hourly Payroll</h2>';
+  if(MODE==='local')h+='<div class="note"><b>Device-only mode:</b> attendance is saved only in this browser. Other phones will not sync. Use Firebase sign-in and configure Firestore rules for shared use.</div>';
+  if(ATTERR)h+='<div class="note">'+esc(ATTERR)+'</div>';
+  if(!ATTREADY)h+='<div class="note">Loading attendance…</div>';
+  if(ROLE==='staff'&&!self)h+='<div class="note">Your account needs a linked staff record. Ask the owner to assign your staff profile in Staff → App access.</div>';
+  h+='<div class="card"><h3>My attendance</h3><div class="acts"><button class="btn pri" data-a="attin" '+(!self||!ATTREADY?'disabled':'')+'>Check IN</button><button class="btn" data-a="attout" '+(!self||!ATTREADY?'disabled':'')+'>Check OUT</button></div><p class="meta">Self check-in/out uses your device clock. One IN/OUT record per day.</p></div>';
+  if(ROLE==='admin'){
+    h+='<div class="card"><h3>Manual attendance / correction</h3><form data-f="attendance"><label>Person <select name="sid">'+people.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>';}).join('')+'</select></label><label>Date <input name="date" type="date" value="'+today()+'" required></label><label>IN <input name="in" type="time" value="10:00" required></label><label>OUT <input name="out" type="time" value="19:00"></label><label>Status <select name="status"><option>Present</option><option>Half Day</option><option>Absent</option><option>Leave</option></select></label><button class="btn pri" type="submit">Save attendance</button></form></div>';
+    h+='<div class="card"><h3>Staff salary settings</h3><p class="meta">Gross salary and hourly rate are entered separately by owner.</p>'+S.staff.map(function(x){var p=ATTPAY[x.id]||{};return '<div class="row"><div class="grow"><b>'+esc(x.name)+'</b><div class="meta">Gross '+inr(p.gross||0)+' · '+inr(p.rate||0)+'/hour</div></div><button class="btn sm" data-a="attpay" data-id="'+esc(x.id)+'">Set salary</button></div>';}).join('')+'</div>';
+  }
+  h+='<div class="card"><h3>Monthly detailed report</h3><label>Month <input type="month" id="attmonth" value="'+esc(month)+'"></label><div class="acts"><button class="btn" data-a="attmonth">Show month</button><button class="btn" data-a="attcsv">Download Excel CSV</button><button class="btn" data-a="attprint">Print / Save PDF</button></div></div>';
+  var visible=people.filter(function(x){return attAllowed(x.id);});
+  h+=visible.map(function(person){var rr=rows.filter(function(x){return x.sid===person.id;}),hours=sum(rr,attHours),p=ROLE==='admin'?(ATTPAY[person.id]||{}):{},earned=r2(hours*(+p.rate||0));return '<div class="card"><h3>'+esc(person.name)+'</h3><div class="stats">'+stat('Days recorded',String(rr.length),'')+stat('Worked hours',hours.toFixed(2),'')+(ROLE==='admin'&&person.id!=='owner'?stat('Gross monthly',inr(p.gross||0),'')+stat('Salary of month',inr(earned),'Hourly rate '+inr(p.rate||0)):'')+'</div><div class="meta">'+(rr.length?rr.map(function(r){return esc(r.date)+' · '+esc(r.status)+' · '+esc(r.in||'—')+'–'+esc(r.out||'—')+' · '+attHours(r).toFixed(2)+'h ('+esc(r.source)+')';}).join('<br>'):'No attendance records this month')+'</div></div>';}).join('');
+  return h;
+}
+function attendanceSubmit(form){var f=form.elements;var sid=f.sid.value, status=f.status.value;attUpsert({sid:sid,date:f.date.value,in:status==='Absent'||status==='Leave'?'00:00':f['in'].value,out:status==='Absent'||status==='Leave'?'00:00':f.out.value,status:status,source:'manual'});}
+function attendanceAction(a,el){
+  if(a==='attmonth'){var m=val('attmonth');if(/^\d{4}-\d{2}$/.test(m)){ATTMONTH=m;render(true);}return;}
+  if(a==='attin'||a==='attout'){
+    var sid=attIdentity(),date=today(),r=ATT.filter(function(x){return x.id===date+'_'+sid;})[0],time=attClock();if(!sid)return;
+    if(a==='attin'){if(r&&r.in){toast('Already checked in today');return;}attUpsert({sid:sid,date:date,in:time,out:'',source:'self'});}
+    else {if(!r||!r.in){toast('Check IN first');return;}if(r.out){toast('Already checked out');return;}attUpsert({sid:sid,date:date,in:r.in,out:time,source:'self'});}return;
+  }
+  if(a==='attpay'&&ROLE==='admin'){
+    var id=el.dataset.id,person=staffOf(id),p=ATTPAY[id]||{};if(!person)return;
+    sheet('Salary · '+person.name,'<form data-f="attpay"><input type="hidden" name="sid" value="'+esc(id)+'"><label>Gross Monthly Salary (₹)<input name="gross" type="number" min="0" step="0.01" value="'+esc(p.gross||0)+'" required></label><label>Per Hour Rate (₹)<input name="rate" type="number" min="0" step="0.01" value="'+esc(p.rate||0)+'" required></label><button class="btn pri" type="submit">Save salary settings</button></form>');return;
+  }
+  if(a==='attcsv'){var out=[['Date','Name','Status','IN','OUT','Hours','Source','Gross Monthly Salary','Hourly Rate','Salary for Day']];ATT.filter(function(x){return x.date&&x.date.slice(0,7)===ATTMONTH&&attAllowed(x.sid);}).sort(function(a,b){return a.date.localeCompare(b.date);}).forEach(function(r){var person=attPeople().filter(function(p){return p.id===r.sid;})[0],p=ROLE==='admin'?(ATTPAY[r.sid]||{}):{};out.push([r.date,person?person.name:r.sid,r.status,r.in,r.out,attHours(r).toFixed(2),r.source,ROLE==='admin'?p.gross||0:'',ROLE==='admin'?p.rate||0:'',ROLE==='admin'?r2(attHours(r)*(+p.rate||0)):'']);});saveFile('attendance-'+ATTMONTH+'.csv','\uFEFF'+out.map(function(row){return row.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n'),'text/csv;charset=utf-8');return;}
+  if(a==='attprint'){window.print();return;}
+}
+/* Additional salary form handling, without modifying existing staff forms */
+document.addEventListener('submit',function(e){if(!e.target.dataset||e.target.dataset.f!=='attpay')return;e.preventDefault();e.stopImmediatePropagation();if(ROLE!=='admin')return;var f=e.target.elements,id=f.sid.value,g=Number(f.gross.value),r=Number(f.rate.value);if(!staffOf(id)||!isFinite(g)||!isFinite(r)||g<0||r<0){toast('Enter valid salary amounts');return;}var doc={id:id,gross:r2(g),rate:r2(r)};attSave(doc,'attendance_payroll',function(ok){if(ok){if(MODE==='local'){ATTPAY[id]=doc;lsSet(ATTPLOCAL,JSON.stringify(ATTPAY));}closeSheet();render(true);toast('Salary settings saved');}});},true);
+/* Follow Firebase auth state; listeners are closed on logout. */
+var _attAuth=onAuth;onAuth=function(user){if(ATTUNSUB){ATTUNSUB();ATTUNSUB=null;}if(ATTPAYUNSUB){ATTPAYUNSUB();ATTPAYUNSUB=null;}ATT=[];ATTPAY={};ATTREADY=false;return _attAuth(user);};
+var _attStartTeam=startTeam;startTeam=function(role){_attStartTeam(role);attWatch();};
+var _attStartLocal=startLocal;startLocal=function(){_attStartLocal();attWatch();};
 window.__od = { fb: function () { return { mode: MODE, role: ROLE, member: MEMBER, team: TEAM }; }, S: function () { return S; }, put: put, render: render, mode: function () { return MODE; }, role: function () { return ROLE; }, qr: QR, today: today, pending: function () { return PEND; }, comp: { pUpcoming: pUpcoming, pDue: pDue, pLabel: pLabel, pShift: pShift }, words: amountWords, gstOk: gstOk, waNum: waNum, migrate: migrate, desk: deskItems, entries: compEntries, pinfo: pinfo, vinfo: vinfo };
 boot();
 })();
