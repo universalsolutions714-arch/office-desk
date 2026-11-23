@@ -1,0 +1,57 @@
+// INSERT THESE MATCH BLOCKS inside match /databases/{database}/documents { ... }
+// BEFORE the final closing brace of that match. Keep every existing rule unchanged.
+// Requires existing helper functions signedIn(), isOwner(), isMember().
+
+function ownAttendance(sid) {
+  return isMember() && get(memberPath()).data.sid == sid;
+}
+function validAttendance(d, recordId) {
+  return d.keys().hasOnly(['id','sid','date','in','out','status','source','editedBy','updatedAt'])
+    && d.keys().hasAll(['id','sid','date','in','out','status','source','editedBy','updatedAt'])
+    && d.id == recordId
+    && d.sid is string && d.sid.size() > 0 && d.sid.size() <= 128
+    && d.date is string && d.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+    && recordId == d.date + '_' + d.sid
+    && d['in'] is string && d['in'].matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+    && d.out is string && (d.out == '' || d.out.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$'))
+    && d.status in ['Present','Half Day','Absent','Leave']
+    && d.source in ['self','manual','manual correction']
+    && d.editedBy == request.auth.uid
+    && d.updatedAt is string && d.updatedAt.size() <= 40;
+}
+function validPayroll(d, sid) {
+  return d.keys().hasOnly(['id','gross','rate'])
+    && d.keys().hasAll(['id','gross','rate'])
+    && d.id == sid
+    && d.gross is number && d.gross >= 0 && d.gross <= 100000000
+    && d.rate is number && d.rate >= 0 && d.rate <= 1000000;
+}
+match /attendance/{recordId} {
+  allow read: if isOwner() || (signedIn() && ownAttendance(resource.data.sid));
+  allow create: if signedIn() && validAttendance(request.resource.data,recordId)
+    && (isOwner() || (
+      ownAttendance(request.resource.data.sid)
+      && request.resource.data.source == 'self'
+      && request.resource.data.status == 'Present'
+      && request.resource.data.out == ''
+    ));
+  allow update: if signedIn() && validAttendance(request.resource.data,recordId)
+    && (isOwner() || (
+      ownAttendance(resource.data.sid)
+      && resource.data.sid == request.resource.data.sid
+      && resource.data.date == request.resource.data.date
+      && resource.data['in'] == request.resource.data['in']
+      && resource.data.source == 'self'
+      && request.resource.data.source == 'self'
+      && resource.data.status == 'Present'
+      && request.resource.data.status == 'Present'
+      && resource.data.out == ''
+      && request.resource.data.out != ''
+    ));
+  allow delete: if false;
+}
+match /attendance_payroll/{sid} {
+  allow read: if isOwner();
+  allow create, update: if isOwner() && validPayroll(request.resource.data,sid);
+  allow delete: if false;
+}
