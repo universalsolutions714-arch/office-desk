@@ -2594,7 +2594,7 @@ function attWatch() {
   ATT=[]; ATTPAY={}; ATTREADY=false; ATTPAYREADY=false; ATTERR='';
   if (MODE==='local') { attLocalLoad(); return; }
   if (!FS || MODE!=='db') return;
-  ATTUNSUB=FS.collection('attendance').onSnapshot(function(q){ATT=q.docs.map(function(d){return Object.assign({id:d.id},d.data());});ATTREADY=true;ATTERR='';if(V.tab==='attendance')schedule();},function(e){ATTERR='Attendance database access denied. Firestore rules must be configured before staff can use shared attendance.';ATTREADY=true;if(V.tab==='attendance')schedule();});
+  ATTUNSUB=(ROLE==='admin' ? FS.collection('attendance') : FS.collection('attendance').where('sid','==',attIdentity())).onSnapshot(function(q){ATT=q.docs.map(function(d){return Object.assign({id:d.id},d.data());});ATTREADY=true;ATTERR='';if(V.tab==='attendance')schedule();},function(e){ATTERR='Attendance database access denied. Firestore rules must be configured before staff can use shared attendance.';ATTREADY=true;if(V.tab==='attendance')schedule();});
   if (ROLE==='admin') ATTPAYUNSUB=FS.collection('attendance_payroll').onSnapshot(function(q){ATTPAY={};q.docs.forEach(function(d){ATTPAY[d.id]=d.data();});ATTPAYREADY=true;if(V.tab==='attendance')schedule();},function(e){ATTPAYREADY=true;ATTERR='Payroll access denied. Check Firestore security rules.';if(V.tab==='attendance')schedule();});
 }
 function attSave(doc,collection,done) {
